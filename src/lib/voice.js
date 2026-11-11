@@ -148,17 +148,49 @@ function browserVoice(lang, text, my, opts = {}) {
  * Says a phrase with the BROWSER's voice (for what cannot be generated beforehand,
  * like the child's name). Cuts off whatever is playing, just like say().
  */
-export function sayLive(text, { lang = 'es', pitch = 1.25, rate = 1 } = {}) {
+export function sayLive(text, { lang = 'es', pitch = 1.25, rate = 1, fallback } = {}) {
   const t = String(text ?? '').trim();
-  if (!voice.enabled || !t || !('speechSynthesis' in window)) return Promise.resolve();
+  if (!voice.enabled || !t) return Promise.resolve();
+  // If the browser cannot speak (no voices, it does not start or it fails), the mp3 `fallback` is played:
+  // something is always heard.
+  const useMp3 = () => (fallback ? say(fallback, { lang }) : Promise.resolve());
+  if (!('speechSynthesis' in window) || !bestVoice(lang)) return useMp3();
   const busy = speechSynthesis.speaking || speechSynthesis.pending;
   stop();
   const my = token;
   setTalking(true);
-  // Chrome sometimes swallows a phrase if it is spoken right after cancel(): wait a moment only in that case
-  const go = () => browserVoice(lang, t, my, { pitch, rate });
-  const p = busy ? new Promise((r) => setTimeout(r, 90)).then(go) : go();
-  const run = p.finally(() => { if (my === token) setTalking(false); });
+  const run = new Promise((done) => {
+    const speak = () => {
+      if (my !== token) return done();
+      const u = new SpeechSynthesisUtterance(t);
+      u.lang = VOICE_LANGS[lang];
+      try { u.voice = bestVoice(lang); } catch {}
+      u.pitch = pitch;
+      u.rate = rate;
+      let started = false;
+      const entry = { tts: u, done: finish };
+      const safety = setTimeout(finish, 2500 + t.length * 90);
+      const noStart = setTimeout(() => !started && failed(), 1200);
+      function finish() {
+        clearTimeout(safety); clearTimeout(noStart);
+        playing.delete(entry);
+        done();
+      }
+      function failed() {
+        clearTimeout(safety); clearTimeout(noStart);
+        playing.delete(entry);
+        try { speechSynthesis.cancel(); } catch {}
+        if (my === token) useMp3().then(done); else done();
+      }
+      u.onstart = () => { started = true; };
+      u.onend = finish;
+      u.onerror = (e) => (!started && !['interrupted', 'canceled'].includes(e.error) ? failed() : finish());
+      playing.add(entry);
+      speechSynthesis.speak(u);
+    };
+    // Chrome sometimes swallows a phrase if it is spoken right after cancel(): wait a moment only in that case
+    busy ? setTimeout(speak, 90) : speak();
+  }).finally(() => { if (my === token) setTalking(false); });
   chain = run.catch(() => {});
   return run;
 }

@@ -16,8 +16,10 @@ function pickOne(list) {
 export function tickle(lang) {
   const t = ui[lang];
   const name = (load().name || '').trim();
-  if (name && 'speechSynthesis' in window) {
-    return sayLive(pickOne(t.tickleNamed).replaceAll('{name}', name), { lang });
+  const mp3 = pickOne(t.lola.tickles);
+  if (name) {
+    // with the browser voice; if that device cannot speak, the mp3 is heard (without the name)
+    return sayLive(pickOne(t.tickleNamed).replaceAll('{name}', name), { lang, fallback: mp3 });
   }
-  return say(pickOne(t.lola.tickles), { lang });
+  return say(mp3, { lang });
 }
