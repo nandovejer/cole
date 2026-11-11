@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
-    "preview": "astro preview"
+    "preview": "astro preview",
+    "audio": "node scripts/audio.mjs"
   },
   "dependencies": {
     "astro": "^5.18.2"
