@@ -58,10 +58,11 @@ const lessonHref = href(lang, `/${leccion.curso}/${leccion.asignatura}/${leccion
 
   <h2 class="sub">🎮 {p.games}</h2>
   <div class="panel">
-    <a class="lesson-link" href={lessonHref}>{leccion.emoji} {leccion.nombre[lang]}</a>
-    <p class="empty" id="noGames">{p.notYet}</p>
+    {!leccion.idiomas.includes(lang) && <p class="empty">🚧 {t.soonText}</p>}
+    {leccion.idiomas.includes(lang) && <a class="lesson-link" href={lessonHref}>{leccion.emoji} {leccion.nombre[lang]}</a>}
+    <p class="empty" id="noGames" hidden={!leccion.idiomas.includes(lang)}>{p.notYet}</p>
     <ul class="games">
-      {GAMES.map((g) => (
+      {leccion.idiomas.includes(lang) && GAMES.map((g) => (
         <li data-game={`${leccion.slug}/${g.id}`} hidden>
           <a href={`${lessonHref}#${g.id}`}><span class="em">{g.em}</span><span class="gname">{g[lang]}</span></a>
           <span class="gstats"><span data-f="played"></span> · <span data-f="wins"></span></span>
@@ -106,7 +107,7 @@ const lessonHref = href(lang, `/${leccion.curso}/${leccion.asignatura}/${leccion
       li.querySelector('[data-f="played"]')!.textContent = '▶️ ' + P.times(g.played);
       li.querySelector('[data-f="wins"]')!.textContent = '⭐ ' + P.won(g.wins);
     });
-    $('#noGames').hidden = any;
+    $('#noGames').hidden = any || !document.querySelector('[data-game]');
   }
 
   input.addEventListener('input', () => { setProfile({ name: input.value.trim() }); render(); });

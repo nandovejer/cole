@@ -13,6 +13,8 @@ export interface Leccion {
   emoji: string;
   color: string;
   juegos: number;
+  /** Languages it is available in (the Lengua ones are only in Spanish) */
+  idiomas: Lang[];
 }
 
 export const cursos: Curso[] = [
@@ -20,7 +22,7 @@ export const cursos: Curso[] = [
 ];
 
 export const asignaturas: Asignatura[] = [
-  { slug: 'lengua', nombre: { es: 'Lengua', en: 'Spanish' }, emoji: '📖', color: '#ff5d73' },
+  { slug: 'lengua', nombre: { es: 'Lengua', en: 'Spanish Language' }, emoji: '📖', color: '#ff5d73' },
   { slug: 'matematicas', nombre: { es: 'Matemáticas', en: 'Maths' }, emoji: '🔢', color: '#3a86ff' },
   { slug: 'ciencias-sociales', nombre: { es: 'Ciencias Sociales', en: 'Social Science' }, emoji: '🌍', color: '#ff9f1c' },
   { slug: 'ingles', nombre: { es: 'Inglés', en: 'English' }, emoji: '💂', color: '#9b5de5' },
@@ -38,8 +40,9 @@ export const lecciones: Leccion[] = [
     emoji: '🐛',
     color: '#3a86ff',
     juegos: 10,
+    idiomas: ['es'],
   },
 ];
 
-export const leccionesDe = (curso: string, asignatura: string) =>
-  lecciones.filter((l) => l.curso === curso && l.asignatura === asignatura);
+export const leccionesDe = (curso: string, asignatura: string, lang: Lang) =>
+  lecciones.filter((l) => l.curso === curso && l.asignatura === asignatura && l.idiomas.includes(lang));

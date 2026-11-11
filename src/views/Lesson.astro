@@ -1,18 +1,36 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import Lola from '../components/Lola.astro';
 import ElLaLosLas from '../lessons/el-la-los-las/ElLaLosLas.astro';
 import type { Curso, Asignatura, Leccion } from '../data/cole';
+import { ui } from '../i18n/ui.js';
 import { href, type Lang } from '../i18n/paths';
 
 interface Props { lang: Lang; curso: Curso; asignatura: Asignatura; leccion: Leccion }
 const { lang, curso, asignatura, leccion } = Astro.props;
+const t = ui[lang];
 const backHref = href(lang, `/${curso.slug}/${asignatura.slug}/`);
+// The page exists in both languages so the language button always works,
+// but if the lesson is not in that language it shows "coming soon".
+const disponible = leccion.idiomas.includes(lang);
 
 // Each lesson is its own component. To add one: create it in src/lessons/ and register it here.
 const componentes = { 'el-la-los-las': ElLaLosLas } as const;
 const Componente = componentes[leccion.slug as keyof typeof componentes];
 ---
 
-<Layout title={`${leccion.nombre[lang]} · ${asignatura.nombre[lang]}`} lang={lang} back={backHref}>
-  <Componente lang={lang} backHref={backHref} />
+<Layout title={`${disponible ? leccion.nombre[lang] : t.soon} · ${asignatura.nombre[lang]}`} lang={lang} back={backHref}>
+  {disponible ? (
+    <Componente lang={lang} backHref={backHref} />
+  ) : (
+    <>
+      <h1 class="title" style={`color:${asignatura.color}`}><span>{asignatura.emoji}</span> {asignatura.nombre[lang]}</h1>
+      <Lola texto={t.lola.soon} lang={lang} />
+      <div class="soon">
+        <div class="em">🚧</div>
+        <p>{t.soonText}</p>
+      </div>
+      <a class="back" href={backHref}>← {t.back}</a>
+    </>
+  )}
 </Layout>

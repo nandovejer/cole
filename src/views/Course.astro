@@ -18,7 +18,7 @@ const backHref = href(lang, '/');
     {asignaturas.map((a) => (
       <a class="tile" href={href(lang, `/${curso.slug}/${a.slug}/`)} style={`background:${a.color};--c:${a.color}`}>
         <span class="em">{a.emoji}</span>
-        <span class="txt">{a.nombre[lang]}<small>{t.lessons(leccionesDe(curso.slug, a.slug).length)}</small></span>
+        <span class="txt">{a.nombre[lang]}<small>{t.lessons(leccionesDe(curso.slug, a.slug, lang).length)}</small></span>
         <span class="go" aria-hidden="true">▶</span>
       </a>
     ))}

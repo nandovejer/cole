@@ -8,7 +8,7 @@ import { href, type Lang } from '../i18n/paths';
 interface Props { lang: Lang; curso: Curso; asignatura: Asignatura }
 const { lang, curso, asignatura } = Astro.props;
 const t = ui[lang];
-const lista = leccionesDe(curso.slug, asignatura.slug);
+const lista = leccionesDe(curso.slug, asignatura.slug, lang);
 const backHref = href(lang, `/${curso.slug}/`);
 ---
 

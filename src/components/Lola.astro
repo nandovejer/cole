@@ -11,7 +11,7 @@ interface Props {
 const { texto, lang, auto = true } = Astro.props;
 ---
 
-<div class="mascot-row" data-lola-auto={auto ? '' : undefined} data-lang={lang} data-giggle={ui[lang].lola.giggle}>
+<div class="mascot-row" data-lola-auto={auto ? '' : undefined} data-lang={lang}>
   <svg class="lola" id="lola" viewBox="0 0 160 130" role="img" aria-label="Lola">
     <ellipse cx="80" cy="122" rx="62" ry="6" fill="#000" opacity=".08"></ellipse>
     <circle cx="24" cy="104" r="15" fill="#f78fb3"></circle><circle cx="46" cy="100" r="18" fill="#f8a5c2"></circle>
@@ -32,6 +32,7 @@ const { texto, lang, auto = true } = Astro.props;
 
 <script>
   import { say } from '../lib/voice.js';
+  import { tickle } from '../lib/tickle.js';
 
   const row = document.querySelector<HTMLElement>('[data-lola-auto]');
   if (row) {
@@ -40,7 +41,7 @@ const { texto, lang, auto = true } = Astro.props;
     const text = row.querySelector('#bubbleText')!;
     const jump = () => { lola.classList.remove('happy'); void lola.getBoundingClientRect(); lola.classList.add('happy'); };
     row.querySelector('#bubble')!.addEventListener('click', () => say(text.textContent ?? '', { lang }));
-    lola.addEventListener('click', () => { jump(); say(row.dataset.giggle ?? '', { lang }); });
+    lola.addEventListener('click', () => { jump(); tickle(lang === 'en' ? 'en' : 'es'); });
   }
 </script>
 
