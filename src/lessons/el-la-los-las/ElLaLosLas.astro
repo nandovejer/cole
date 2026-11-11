@@ -2,13 +2,13 @@
 import Lola from '../../components/Lola.astro';
 import type { Lang } from '../../i18n/paths';
 import './game.css';
+import { pack as K } from './data.js';
 
 interface Props { lang: Lang; backHref: string }
 const { lang, backHref } = Astro.props;
 
-// Interface text. In English, Lola speaks England English and says the Spanish words in Spanish.
+// Lengua lessons are only in Spanish (they are not translated).
 const T = {
-  es: {
     cards: [
       ['learn', 'c1', '🏠', 'Conoce', 'el · la · los · las'],
       ['choose', 'c2', '🧩', '¿Cuál va?', 'Elige la palabrita'],
@@ -34,40 +34,11 @@ const T = {
     hello: '¡Hola! Soy Lola', volume: 'Sube el volumen y toca el botón', start: '🔊 ¡Empezar!',
     bubble: '¡Hola! Soy Lola la lombriz 🐛 Toca un juego y aprendemos el, la, los y las.',
     kid: 'Niño dibujado',
-  },
-  en: {
-    cards: [
-      ['learn', 'c1', '🏠', 'Meet them', 'el · la · los · las'],
-      ['choose', 'c2', '🧩', 'Which one?', 'Pick the little word'],
-      ['listen', 'c3', '👂', 'Listen and tap', 'One or many?'],
-      ['balloons', 'c4', '🎈', 'Pop balloons', 'Catch the right ones!'],
-      ['sort', 'c5', '🏡', 'Little houses', 'Take each thing home'],
-      ['plural', 'c6', '🪄', 'One and many', 'Do some magic!'],
-      ['detective', 'c7', '🕵️', 'Detective Lola', 'Did she say it right?'],
-      ['sentence', 'c8', '📖', 'Sentences', 'Which word is missing?'],
-      ['unicorn', 'c9', '🦄', 'The unicorn', 'Find its friends'],
-      ['body', 'c10', '🧒', 'My body', 'From head to toe'],
-    ],
-    one: '☝️ One', many: '🖐️ Many',
-    tip: '💡 Tip: if there are <b>many</b>, the little word ends in <b>S</b>, just like the thing! <b>los</b> perro<b>s</b>, <b>las</b> casa<b>s</b>.',
-    listenHint: 'Listen and tap the right picture',
-    listenBtn: 'Listen',
-    popWith: 'Pop the ones that go with',
-    play: "Let's play! 🎈",
-    detective: '🕵️ Did Lola say it right?',
-    good: 'Right!', bad: 'Wrong!',
-    back: '← Back',
-    again: 'Again! 🔁', menu: '🏠 Games',
-    hello: "Hi! I'm Lola", volume: 'Turn the volume up and tap the button', start: '🔊 Start!',
-    bubble: "Hi! I'm Lola the worm 🐛 Tap a game and let's learn el, la, los and las.",
-    kid: 'Drawing of a child',
-  },
-}[lang];
+};
 ---
 
 <h1 class="title lesson-title">
-  <span style="color:var(--el)">el</span> <span style="color:var(--la)">la</span>
-  <span style="color:var(--los)">los</span> <span style="color:var(--las)">las</span>
+  {K.ARTS.map((a) => <span style={`color:var(--${a})`}>{a}</span>)}
 </h1>
 
 <Lola texto={T.bubble} lang={lang} auto={false} />
@@ -88,13 +59,18 @@ const T = {
     <div class="hdr" data-tag="one">{T.one}</div>
     <div class="hdr" data-tag="many">{T.many}</div>
 
-    <div class="hdr rowh" data-tag="blue">🔵</div>
-    <div class="house b-el" data-a="el"><div class="art bg-el">el</div><div class="ex">🐶</div><div class="lbl">el perro</div></div>
-    <div class="house b-los" data-a="los"><div class="art bg-los">los</div><div class="ex" style="letter-spacing:-8px">🐶🐶🐶</div><div class="lbl">los perros</div></div>
-
-    <div class="hdr rowh" data-tag="orange">🟠</div>
-    <div class="house b-la" data-a="la"><div class="art bg-la">la</div><div class="ex">🏠</div><div class="lbl">la casa</div></div>
-    <div class="house b-las" data-a="las"><div class="art bg-las">las</div><div class="ex" style="letter-spacing:-8px">🏠🏠🏠</div><div class="lbl">las casas</div></div>
+    {K.LEARN.rows.map((row) => (
+      <>
+        <div class="hdr rowh" data-tag={row.tag}>{row.em}</div>
+        {row.houses.map((h) => (
+          <div class={`house b-${h.a}`} data-k={h.k}>
+            <div class={`art bg-${h.a}`}>{h.a}</div>
+            <div class="ex" style={h.ex.length > 2 ? 'letter-spacing:-8px' : undefined}>{h.ex}</div>
+            <div class="lbl">{h.lbl}</div>
+          </div>
+        ))}
+      </>
+    ))}
   </div>
   <div class="tip" id="tip" set:html={T.tip} />
   <a class="back" href="#" data-go="menu">{T.back}</a>
@@ -105,7 +81,6 @@ const T = {
   <div class="stage">
     <div class="picture" id="chPic">🐶</div>
     <div class="noun"><span class="blank" id="chBlank">__</span><span id="chWord">perro</span></div>
-    <div class="gloss" id="chGloss"></div>
     <div class="opts" id="chOpts"></div>
     <div class="progress" id="chProg"></div>
   </div>
@@ -134,12 +109,11 @@ const T = {
 <!-- LITTLE HOUSES -->
 <section class="screen" id="sort">
   <div class="stage">
-    <div class="card5" id="soCard"><div class="picture" id="soPic">🐶</div><div class="noun" id="soWord">perro</div><div class="gloss" id="soGloss"></div></div>
-    <div class="houses">
-      <button class="hbtn b-el" data-h="el"><span class="art bg-el">el</span><span class="hcount" id="hc-el"></span></button>
-      <button class="hbtn b-los" data-h="los"><span class="art bg-los">los</span><span class="hcount" id="hc-los"></span></button>
-      <button class="hbtn b-la" data-h="la"><span class="art bg-la">la</span><span class="hcount" id="hc-la"></span></button>
-      <button class="hbtn b-las" data-h="las"><span class="art bg-las">las</span><span class="hcount" id="hc-las"></span></button>
+    <div class="card5" id="soCard"><div class="picture" id="soPic">🐶</div><div class="noun" id="soWord">perro</div></div>
+    <div class="houses" style={`grid-template-columns:repeat(${K.ARTS.length === 3 ? 3 : 2},1fr)`}>
+      {(K.ARTS.length === 4 ? ['el', 'los', 'la', 'las'] : K.ARTS).map((a) => (
+        <button class={`hbtn b-${a}`} data-h={a}><span class={`art bg-${a}`}>{a}</span><span class="hcount" id={`hc-${a}`}></span></button>
+      ))}
     </div>
     <div class="progress" id="soProg"></div>
   </div>
@@ -151,7 +125,6 @@ const T = {
   <div class="stage">
     <div class="picture" id="plFrom" style="font-size:clamp(56px,12vw,90px)">🐶</div>
     <div class="noun" id="plFromTxt" style="font-size:clamp(34px,7vw,52px)">el perro</div>
-    <div class="gloss" id="plGloss"></div>
     <div class="arrow" id="plAsk">⬇️</div>
     <div class="picture" id="plTo" style="font-size:clamp(56px,12vw,90px)">🐶🐶🐶</div>
     <div class="phrs" id="plOpts"></div>
@@ -166,7 +139,6 @@ const T = {
     <div style="font-size:22px;opacity:.75">{T.detective}</div>
     <div class="picture" id="dePic">🐶</div>
     <div class="noun" id="deTxt" style="cursor:pointer">la perro</div>
-    <div class="gloss" id="deGloss"></div>
     <div class="opts" id="deOpts">
       <button class="yesno yes" id="deYes">✅<small>{T.good}</small></button>
       <button class="yesno no" id="deNo">❌<small>{T.bad}</small></button>
@@ -182,7 +154,6 @@ const T = {
   <div class="stage">
     <div class="picture" id="snPic">🐶</div>
     <div class="sent" id="snTxt"></div>
-    <div class="gloss" id="snGloss"></div>
     <div class="opts" id="snOpts"></div>
     <div class="progress" id="snProg"></div>
   </div>
@@ -225,7 +196,6 @@ const T = {
       </svg>
     </div>
     <div class="sent" id="unTxt" style="font-size:clamp(30px,6.5vw,46px)"></div>
-    <div class="gloss" id="unGloss"></div>
     <div class="pics" id="unPics"></div>
     <div class="progress" id="unProg"></div>
   </div>
@@ -256,7 +226,6 @@ const T = {
       <g id="rings"></g>
     </svg>
     <div class="noun"><span class="blank" id="boBlank">__</span><span id="boWord">nariz</span></div>
-    <div class="gloss" id="boGloss"></div>
     <div class="opts" id="boOpts"></div>
     <div class="progress" id="boProg"></div>
   </div>

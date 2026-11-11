@@ -201,168 +201,49 @@ export const WINS = {
   body: ['¡Conoces tu cuerpo!', 'De la cabeza a los pies', '🧒'],
 };
 
-/** Marks a piece that is said in Spanish (the word being learned), even in the English version. */
-export const es = (t) => ({ t, lang: 'es' });
-
 // Spanish content of the unicorn (it is part of what is read)
 export const WHERE = { one: '¿Dónde está', many: '¿Dónde están' };
 
-/* ================= English version (England English) ================= */
-// The Spanish words (el perro, las casas…) go inside es() and are said with the Spanish voice.
-export const L_EN = {
-  hello: ["Hi! I'm Lola the worm. Let's learn the little words", es('el, la, los y las.'), 'Tap a game!'],
-  tickle: 'Hee hee! That tickles!',
-  star: "You've won a star!",
-  intros: {
-    menu: 'What shall we play? Tap a game!',
-    learn: ['Tap each little house and listen.', es('El y la'), 'are for just one.', es('Los y las'), 'are for many.'],
-    choose: ['Look at the picture. Which little word goes in front?', es('¿El, la, los o las?')],
-    listen: 'Tap the speaker, listen carefully and tap the right picture.',
-    balloons: 'Pop only the balloons that go with the little word!',
-    sort: ['Take each thing to its little house.', es('¿El, la, los o las?')],
-    plural: "Let's do some magic! Change from one to many.",
-    detective: "I'm Detective Lola. Sometimes I get it wrong. Listen and tell me if I say it right!",
-    sentence: 'Read the sentence and pick the missing little word.',
-    unicorn: 'The unicorn is looking for its animal friends. Read and help it find them!',
-    body: 'Look at what is shining in the picture and pick the little word.',
-  },
-  learn: {
-    el: [es('El.'), 'Just one, from the blue team.', es('El perro.')],
-    la: [es('La.'), 'Just one, from the orange team.', es('La casa.')],
-    los: [es('Los.'), 'Many, from the blue team.', es('Los perros.'), 'Can you hear the S at the end?'],
-    las: [es('Las.'), 'Many, from the orange team.', es('Las casas.'), 'With an S too!'],
-  },
-  tip: ['Tip: if there are many, the little word ends in S, just like the thing.', es('Los perros. Las casas.')],
-  tags: {
-    one: 'Just one',
-    many: 'Many',
-    blue: ['Blue team:', es('el perro, los perros')],
-    orange: ['Orange team:', es('la casa, las casas')],
-  },
-  one: 'One:',
-  many: 'Many:',
-  whichArt: 'Which little word goes here?',
-  manyNeedS: 'Look! There are many. You need a little word with S.',
-  oneNoS: "Look! There's only one. The little word has no S.",
-  almostSayIt: 'Almost. Try saying it out loud:',
-  soundsOdd: 'Sounds funny, right?',
-  thereMany: 'There are many there. Listen again:',
-  thereOne: "There's only one there. Listen again:",
-  thatIs: "That's",
-  listenAgain: 'Listen again:',
-  yes: 'Yes!',
-  oops: "Oops! That's",
-  findWith: (a) => ['Find the things that go with', es(a)],
-  find: (a) => ['Find', es(a)],
-  whichHouse: 'Which little house does it go to?',
-  manyHouseS: 'There are many. Find a little house with S.',
-  oneHouseNoS: "There's only one. Find a little house without S.",
-  almostSay: 'Almost. Say it out loud:',
-  soundsGood: 'Does it sound right?',
-  ifMany: 'What if there are many?',
-  ifOne: "What if there's only one?",
-  mmm: 'Hmm,',
-  notGood: "doesn't sound right. Try another one!",
-  saidRight: 'Did I say it right?',
-  caught: 'You caught me! How do you say it right?',
-  thatsIt: "That's it!",
-  notThat: 'Not that one either. Try again!',
-  yesRight: 'Yes! I said it right:',
-  sure: 'Are you sure it sounds right?',
-  iThinkRight: 'I think it is right:',
-  listen: 'Listen!',
-  missing: 'Which little word is missing?',
-  lookMany: 'Look: there are many.',
-  lookOne: "Look: there's only one.",
-  readWith: 'Almost. Read it out loud with',
-  uniAsks: 'The unicorn asks:',
-  hereIs: 'Here it is:',
-  hereAre: 'Here they are:',
-  readMany: 'There are many there. Read again:',
-  readOne: "There's only one there. Read again:",
-  thatOne: "That's",
-  glows: 'Look at what is shining:',
-  touch: 'Touch your',
-  glowTwo: 'Look: two are shining. That means many.',
-  glowOne: 'Look: only one is shining.',
-  almost: 'Almost.',
-  sayAloud: 'Say it out loud.',
+export const isPl = (a) => a.endsWith('s');
+/** A wrong article with the same number as the right one (for "Uno y muchos"). */
+export const otherArt = (n, pl) => ({ el: 'la', la: 'el', los: 'las', las: 'los' })[artOf(n, pl)];
+export const touch = (part) => [L.touch, part.a + ' ' + part.s];
+
+// «Conoce»: 2 rows (teams) × 2 columns (one / many)
+export const LEARN = {
+  rows: [
+    { tag: 'blue', em: '🔵', houses: [{ k: 'el', a: 'el', ex: '🐶', lbl: 'el perro' }, { k: 'los', a: 'los', ex: '🐶🐶🐶', lbl: 'los perros' }] },
+    { tag: 'orange', em: '🟠', houses: [{ k: 'la', a: 'la', ex: '🏠', lbl: 'la casa' }, { k: 'las', a: 'las', ex: '🏠🏠🏠', lbl: 'las casas' }] },
+  ],
+  ex: { el: ['gato', '🐱', 'sol', '☀️'], la: ['luna', '🌙', 'flor', '🌸'], los: ['gatos', '🐱🐱🐱', 'osos', '🐻🐻🐻'], las: ['vacas', '🐮🐮🐮', 'fresas', '🍓🍓🍓'] },
 };
 
-export const CHEERS_EN = ['Well done!', 'Great!', "You're a star!", 'Fantastic!', "That's the way!", 'Bravo!', 'Perfect!'];
-
-export const WINS_EN = {
-  learn: ['You know them all!', es('El, la, los y las'), '🏠'],
-  choose: ['You did brilliantly!', ['Now you can use', es('el, la, los y las')], '🧩'],
-  listen: ['What good ears!', 'You got them all right', '👂'],
-  balloons: ['Balloon champion!', "You've popped six balloons", '🎈'],
-  sort: ['Houses full!', 'Everything is in its place', '🏠'],
-  plural: ['Magic!', 'You can change from one to many', '🪄'],
-  detective: ['Great detective!', "You caught all of Lola's mistakes", '🕵️'],
-  sentence: ['Perfect sentences!', 'You can read whole sentences now', '📖'],
-  unicorn: ['Rainbow complete!', 'The unicorn has found all its friends', '🦄'],
-  body: ['You know your body!', 'From head to toe', '🧒'],
+export const pack = {
+  lang: 'es', ARTS, NOUNS, ANIMALS, BODY, SENT, WHERE, LEARN, L, CHEERS, WINS,
+  artOf, wordOf, picOf, phrase, isPl, otherArt, touch,
 };
 
-// English meaning of each Spanish word (shown in the English version)
-export const GLOSS = {
-  perro: 'dog', gato: 'cat', sol: 'sun', 'árbol': 'tree', coche: 'car', pez: 'fish', globo: 'balloon', oso: 'bear',
-  'plátano': 'banana', libro: 'book', casa: 'house', flor: 'flower', luna: 'moon', manzana: 'apple',
-  mariposa: 'butterfly', estrella: 'star', pelota: 'ball', vaca: 'cow', fresa: 'strawberry', tortuga: 'tortoise',
-  conejo: 'rabbit', caballo: 'horse', pato: 'duck', cerdo: 'pig', 'león': 'lion', 'ratón': 'mouse', pollito: 'chick',
-  mono: 'monkey', elefante: 'elephant', 'tiburón': 'shark', 'pájaro': 'bird', caracol: 'snail', pulpo: 'octopus',
-  dinosaurio: 'dinosaur', huevo: 'egg', helado: 'ice cream', tomate: 'tomato', 'limón': 'lemon', queso: 'cheese',
-  caramelo: 'sweet', zapato: 'shoe', barco: 'boat', tren: 'train', 'avión': 'aeroplane', cohete: 'rocket',
-  'lápiz': 'pencil', reloj: 'watch', regalo: 'present', tambor: 'drum', rana: 'frog', abeja: 'bee', oveja: 'sheep',
-  jirafa: 'giraffe', cebra: 'zebra', ballena: 'whale', gallina: 'hen', serpiente: 'snake', pera: 'pear',
-  'piña': 'pineapple', uva: 'grape', 'sandía': 'watermelon', naranja: 'orange', zanahoria: 'carrot',
-  galleta: 'biscuit', pizza: 'pizza', tarta: 'cake', taza: 'cup', cama: 'bed', silla: 'chair', llave: 'key',
-  mochila: 'school bag', camiseta: 'T-shirt', corona: 'crown', nube: 'cloud', gota: 'drop', hoja: 'leaf',
-  seta: 'mushroom', bicicleta: 'bike', guitarra: 'guitar', campana: 'bell', vela: 'candle',
-  cabeza: 'head', pelo: 'hair', ojos: 'eyes', orejas: 'ears', nariz: 'nose', boca: 'mouth', cuello: 'neck',
-  brazos: 'arms', barriga: 'tummy', piernas: 'legs', pies: 'feet',
-};
-// plural in English (when it is not just adding an "s")
-const GLOSS_PL = { fish: 'fish', sheep: 'sheep', mouse: 'mice', 'ice cream': 'ice creams', watch: 'watches', tortoise: 'tortoises',
-  butterfly: 'butterflies', strawberry: 'strawberries', 'school bag': 'school bags', 'T-shirt': 'T-shirts', peach: 'peaches' };
-/** English meaning of a noun in singular or plural. */
-export function glossOf(n, pl) {
-  const g = GLOSS[n.s];
-  if (!g) return '';
-  if (!pl) return (/^[aeiou]/i.test(g) ? 'an ' : 'a ') + g;
-  return GLOSS_PL[g] || g + 's';
-}
-
-export const TEXTS = {
-  es: { L, CHEERS, WINS },
-  en: { L: L_EN, CHEERS: CHEERS_EN, WINS: WINS_EN },
-};
-
-/** All the phrases the lesson can say, by language (to generate the mp3s). */
+/** All the phrases the lesson can say (to generate the mp3s). */
 export function allTexts() {
-  const out = { es: new Set(), en: new Set() };
-  const add = (v, lang) => {
-    if (typeof v === 'string') out[lang].add(v);
-    else if (typeof v === 'function') ARTS.forEach((a) => add(v(a), lang));
-    else if (Array.isArray(v)) v.forEach((x) => add(x, lang));
-    else if (v && v.lang) out[v.lang].add(v.t);
-    else if (v && typeof v === 'object') Object.values(v).forEach((x) => add(x, lang));
+  const out = new Set();
+  const add = (v) => {
+    if (typeof v === 'string') out.add(v);
+    else if (typeof v === 'function') ARTS.forEach((a) => add(v(a)));
+    else if (Array.isArray(v)) v.forEach(add);
+    else if (v && typeof v === 'object') Object.values(v).forEach(add);
   };
-  for (const lang of ['es', 'en']) {
-    const T = TEXTS[lang];
-    add(T.L, lang);
-    add(T.CHEERS, lang);
-    Object.values(T.WINS).forEach(([t, x]) => add([t, x], lang));
-  }
-  add(Object.values(WHERE), 'es');
-  SENT.forEach((s) => add([s.a, s.ap].filter(Boolean), 'es'));
-  add(ARTS, 'es');
+  add(L);
+  add(CHEERS);
+  Object.values(WINS).forEach(([t, x]) => add([t, x]));
+  add(Object.values(WHERE));
+  SENT.forEach((s) => add([s.a, s.ap].filter(Boolean)));
+  add(ARTS);
   const words = [...NOUNS.flatMap((n) => [n.s, n.p]), ...BODY.map((b) => b.s)];
   words.forEach((w) => {
-    out.es.add(w);
-    ARTS.forEach((a) => out.es.add(`${a} ${w}`));
+    out.add(w);
+    ARTS.forEach((a) => out.add(`${a} ${w}`));
   });
-  return { es: [...out.es], en: [...out.en] };
+  return { es: [...out] };
 }
 
 /** Games in the lesson (menu order), with name and emoji in both languages. */

@@ -126,7 +126,3 @@ a.back{display:inline-block;text-decoration:none}
 .menu{gap:12px}
 @media (min-width:600px){.menu{gap:16px}}
 .splash-back{position:absolute;top:14px;left:14px;margin:0 !important}
-/* English meaning of the Spanish word (only in the English version) */
-.gloss{font-family:'Fredoka',sans-serif;font-size:clamp(18px,4.5vw,22px);color:#64748b;min-height:0;margin-top:2px}
-.gloss:empty{display:none}
-.gloss::before{content:"🇬🇧 "}
