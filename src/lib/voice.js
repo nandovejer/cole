@@ -58,16 +58,20 @@ function setTalking(on) {
 
 let token = 0;
 let chain = Promise.resolve();
-let current = null;
+// Everything that is playing now. stop() silences ALL of it, so two phrases
+// never overlap even if the child taps very fast.
+const playing = new Set();
 
 export function stop() {
   token++;
-  if (current) {
-    try { current.src?.stop(); } catch {}
-    try { if (current.tts) speechSynthesis.cancel(); } catch {}
-    current.done();
-    current = null;
+  for (const p of [...playing]) {
+    try { p.src?.stop(); } catch {}
+    try { if (p.tts) speechSynthesis.cancel(); } catch {}
+    p.done();
   }
+  playing.clear();
+  // the browser voice too, even if it is no longer on our list
+  try { if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel(); } catch {}
   chain = Promise.resolve();
   setTalking(false);
 }
@@ -80,39 +84,83 @@ async function running() {
   return c.state === 'running';
 }
 
-function playBuffer(buf) {
+function playBuffer(buf, my) {
   return new Promise((done) => {
+    if (my !== token) return done(); // something newer has started in the meantime
     const c = audioCtx();
     const src = c.createBufferSource();
     src.buffer = buf;
     src.connect(c.destination);
+    const entry = { src, done: finish };
     const safety = setTimeout(finish, buf.duration * 1000 + 600);
     function finish() {
       clearTimeout(safety);
-      if (current?.src === src) current = null;
+      // always silence it on the way out of the list, so nothing is left playing "loose"
+      try { src.onended = null; src.stop(); } catch {}
+      playing.delete(entry);
       done();
     }
-    current = { src, done: finish };
+    playing.add(entry);
     src.onended = finish;
     src.start();
   });
 }
 
-function browserVoice(lang, text) {
+/** The best browser voice for es-ES / en-GB (the "natural" ones first). */
+function bestVoice(lang) {
+  const want = VOICE_LANGS[lang].toLowerCase();
+  const all = speechSynthesis.getVoices();
+  const score = (v) => {
+    const l = v.lang.toLowerCase().replace('_', '-');
+    let s = l === want ? 40 : l.startsWith(lang) ? 20 : -100;
+    if (/natural|neural|online|enhanced|premium|siri/i.test(v.name)) s += 30;
+    if (/google/i.test(v.name)) s += 20;
+    if (/espeak|compact/i.test(v.name)) s -= 50;
+    return s;
+  };
+  return all.filter((v) => score(v) > 0).sort((a, b) => score(b) - score(a))[0] || null;
+}
+if (typeof speechSynthesis !== 'undefined') speechSynthesis.getVoices(); // starts loading the voices
+
+function browserVoice(lang, text, my, opts = {}) {
   return new Promise((done) => {
-    if (!('speechSynthesis' in window)) return done();
+    if (my !== token || !('speechSynthesis' in window)) return done();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = VOICE_LANGS[lang];
+    const v = bestVoice(lang);
+    if (v) u.voice = v;
+    u.rate = opts.rate ?? 1;
+    u.pitch = opts.pitch ?? 1;
+    const entry = { tts: u, done: finish };
     const safety = setTimeout(finish, 1500 + text.length * 90);
     function finish() {
       clearTimeout(safety);
-      if (current?.tts === u) current = null;
+      playing.delete(entry);
       done();
     }
-    current = { tts: u, done: finish };
+    playing.add(entry);
     u.onend = u.onerror = finish;
     speechSynthesis.speak(u);
   });
+}
+
+/**
+ * Says a phrase with the BROWSER's voice (for what cannot be generated beforehand,
+ * like the child's name). Cuts off whatever is playing, just like say().
+ */
+export function sayLive(text, { lang = 'es', pitch = 1.25, rate = 1 } = {}) {
+  const t = String(text ?? '').trim();
+  if (!voice.enabled || !t || !('speechSynthesis' in window)) return Promise.resolve();
+  const busy = speechSynthesis.speaking || speechSynthesis.pending;
+  stop();
+  const my = token;
+  setTalking(true);
+  // Chrome sometimes swallows a phrase if it is spoken right after cancel(): wait a moment only in that case
+  const go = () => browserVoice(lang, t, my, { pitch, rate });
+  const p = busy ? new Promise((r) => setTimeout(r, 90)).then(go) : go();
+  const run = p.finally(() => { if (my === token) setTalking(false); });
+  chain = run.catch(() => {});
+  return run;
 }
 
 /** Turns phrases into [{ t, lang }]. A phrase can be text, { t, lang } or a list. */
@@ -140,13 +188,13 @@ export function say(segs, { lang = 'es', queue = false } = {}) {
         const buf = audioCtx() ? await load(urlOf(lang, text)) : null;
         if (my !== token) return;
         if (buf) {
-          if (!(await running())) return;
+          if (!(await running()) || my !== token) return;
           setTalking(true);
-          await playBuffer(buf);
+          await playBuffer(buf, my);
         } else {
           console.warn(`[voice] missing audio (${lang}): "${text}" → run npm run audio`);
           setTalking(true);
-          await browserVoice(lang, text);
+          await browserVoice(lang, text, my);
         }
       }
     })
