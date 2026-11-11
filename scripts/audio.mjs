@@ -16,7 +16,7 @@ const outDir = join(root, 'public', 'audio');
 // Every phrase, by language
 const texts = { es: new Set(), en: new Set() };
 for (const lang of LANGS) Object.values(ui[lang].lola).forEach((t) => texts[lang].add(t));
-elLaLosLas().forEach((t) => texts.es.add(t));
+for (const [lang, list] of Object.entries(elLaLosLas())) list.forEach((t) => texts[lang].add(t));
 
 const todo = [];
 const keep = new Map();

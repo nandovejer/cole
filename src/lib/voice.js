@@ -49,7 +49,7 @@ const urlOf = (lang, text) => BASE + clipPath(lang, text);
 
 export function preload(lang, segs) {
   if (!audioCtx()) return;
-  segs.map(spoken).filter(Boolean).forEach((t) => load(urlOf(lang, t)));
+  segments(segs, lang).forEach((s) => load(urlOf(s.lang, s.t)));
 }
 
 function setTalking(on) {
@@ -115,20 +115,27 @@ function browserVoice(lang, text) {
   });
 }
 
+/** Turns phrases into [{ t, lang }]. A phrase can be text, { t, lang } or a list. */
+export function segments(segs, lang) {
+  return [segs].flat(Infinity)
+    .map((s) => (s && typeof s === 'object' ? { t: spoken(s.t), lang: s.lang || lang } : { t: spoken(s), lang }))
+    .filter((s) => s.t);
+}
+
 /**
- * Says one or more phrases one after another.
- * Each phrase is one mp3. With { queue: true } it waits for what is playing now;
- * otherwise it cuts it off.
+ * Says one or more phrases one after another (one mp3 each).
+ * A phrase can be { t, lang } to say it in another language (e.g. a Spanish word in English).
+ * With { queue: true } it waits for what is playing now; otherwise it cuts it off.
  */
 export function say(segs, { lang = 'es', queue = false } = {}) {
-  const list = (Array.isArray(segs) ? segs : [segs]).map(spoken).filter(Boolean);
+  const list = segments(segs, lang);
   if (!voice.enabled || !list.length) return Promise.resolve();
   if (!queue) stop();
   const my = token;
-  preload(lang, list);
+  if (audioCtx()) list.forEach((s) => load(urlOf(s.lang, s.t)));
   const run = chain
     .then(async () => {
-      for (const text of list) {
+      for (const { t: text, lang } of list) {
         if (my !== token) return;
         const buf = audioCtx() ? await load(urlOf(lang, text)) : null;
         if (my !== token) return;

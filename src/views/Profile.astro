@@ -1,0 +1,159 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Lola from '../components/Lola.astro';
+import { ui } from '../i18n/ui.js';
+import { href, type Lang } from '../i18n/paths';
+import { ACHIEVEMENTS } from '../lib/progress.js';
+import { GAMES } from '../lessons/el-la-los-las/data.js';
+import { lecciones } from '../data/cole';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const t = ui[lang];
+const p = t.profile;
+const AVATARS = ['🐛', '🐶', '🐱', '🦄', '🦁', '🐸', '🐼', '🦊', '🐵', '🐙', '🐢', '🦖'];
+const stats = [
+  ['stars', '⭐', p.stars],
+  ['wins', '🏆', p.wins],
+  ['perfect', '💯', p.perfect],
+  ['correct', '✅', p.correct],
+  ['accuracy', '🎯', p.accuracy],
+  ['days', '📅', p.days],
+  ['streak', '🔥', p.streak],
+];
+const leccion = lecciones.find((l) => l.slug === 'el-la-los-las')!;
+const lessonHref = href(lang, `/${leccion.curso}/${leccion.asignatura}/${leccion.slug}/`);
+---
+
+<Layout title={`${p.title} · Cole`} lang={lang} back={href(lang, '/')}>
+  <h1 class="title"><span id="pfAvatar">🐛</span> <span id="pfName">{p.title}</span></h1>
+  <Lola texto={t.lola.profile} lang={lang} />
+
+  <section class="panel">
+    <label class="lbl" for="nameInput">{p.name}</label>
+    <input id="nameInput" class="name" type="text" maxlength="24" autocomplete="off" placeholder={p.namePh} />
+    <div class="lbl">{p.avatar}</div>
+    <div class="avatars" role="radiogroup" aria-label={p.avatar}>
+      {AVATARS.map((a) => <button type="button" class="av" data-av={a} role="radio" aria-checked="false">{a}</button>)}
+    </div>
+  </section>
+
+  <h2 class="sub">📊 {p.stats}</h2>
+  <div class="stats">
+    {stats.map(([k, em, label]) => (
+      <div class="stat"><span class="em">{em}</span><b data-stat={k}>0</b><small>{label}</small></div>
+    ))}
+  </div>
+
+  <h2 class="sub">🏅 {p.achievements}</h2>
+  <div class="badges">
+    {ACHIEVEMENTS.map((a) => (
+      <div class="badge" data-ach={a.id}>
+        <span class="em">{a.em}</span>
+        <b>{a[lang][0]}</b>
+        <small>{a[lang][1]}</small>
+      </div>
+    ))}
+  </div>
+
+  <h2 class="sub">🎮 {p.games}</h2>
+  <div class="panel">
+    <a class="lesson-link" href={lessonHref}>{leccion.emoji} {leccion.nombre[lang]}</a>
+    <p class="empty" id="noGames">{p.notYet}</p>
+    <ul class="games">
+      {GAMES.map((g) => (
+        <li data-game={`${leccion.slug}/${g.id}`} hidden>
+          <a href={`${lessonHref}#${g.id}`}><span class="em">{g.em}</span><span class="gname">{g[lang]}</span></a>
+          <span class="gstats"><span data-f="played"></span> · <span data-f="wins"></span></span>
+        </li>
+      ))}
+    </ul>
+  </div>
+
+  <p class="note">🔒 {p.saved}</p>
+  <button type="button" class="back reset" id="resetBtn" data-confirm={p.resetConfirm}>🗑️ {p.reset}</button>
+</Layout>
+
+<script>
+  import { load, setProfile, reset, streak, ACHIEVEMENTS } from '../lib/progress.js';
+  import { ui } from '../i18n/ui.js';
+
+  const lang = document.documentElement.lang === 'en' ? 'en' : 'es';
+  const P = ui[lang].profile;
+  const $ = (s: string) => document.querySelector(s) as HTMLElement;
+  const input = $('#nameInput') as HTMLInputElement;
+
+  function render() {
+    const p = load();
+    $('#pfAvatar').textContent = p.avatar;
+    $('#pfName').textContent = p.name || P.title;
+    if (document.activeElement !== input) input.value = p.name;
+    document.querySelectorAll<HTMLElement>('.av').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.av === p.avatar)));
+    const total = p.correct + p.wrong;
+    const values: Record<string, string | number> = {
+      stars: p.stars, wins: p.wins, perfect: p.perfect, correct: p.correct,
+      accuracy: total ? Math.round((p.correct / total) * 100) + '%' : '–',
+      days: p.days.length, streak: streak(p),
+    };
+    document.querySelectorAll<HTMLElement>('[data-stat]').forEach((el) => (el.textContent = String(values[el.dataset.stat!])));
+    ACHIEVEMENTS.forEach((a) => $(`[data-ach="${a.id}"]`)?.classList.toggle('on', !!p.achievements[a.id]));
+    let any = false;
+    document.querySelectorAll<HTMLElement>('[data-game]').forEach((li) => {
+      const g = p.games[li.dataset.game!];
+      li.hidden = !g;
+      if (!g) return;
+      any = true;
+      li.querySelector('[data-f="played"]')!.textContent = '▶️ ' + P.times(g.played);
+      li.querySelector('[data-f="wins"]')!.textContent = '⭐ ' + P.won(g.wins);
+    });
+    $('#noGames').hidden = any;
+  }
+
+  input.addEventListener('input', () => { setProfile({ name: input.value.trim() }); render(); });
+  document.querySelectorAll<HTMLElement>('.av').forEach((b) =>
+    b.addEventListener('click', () => { setProfile({ avatar: b.dataset.av }); render(); }),
+  );
+  $('#resetBtn').addEventListener('click', (e) => {
+    if (confirm((e.currentTarget as HTMLElement).dataset.confirm)) { reset(); render(); }
+  });
+  render();
+</script>
+
+<style>
+  .panel{background:#fff;border-radius:28px;padding:18px;margin-top:16px;box-shadow:0 6px 0 #d6e4f0}
+  .lbl{display:block;font-family:'Fredoka',sans-serif;font-size:22px;margin:4px 0 8px}
+  .name{width:100%;font:inherit;font-size:26px;padding:12px 16px;border-radius:20px;border:3px solid #cbd5e1;
+    color:var(--ink);background:#f8fafc;margin-bottom:14px;user-select:text;-webkit-user-select:text}
+  .name:focus{outline:none;border-color:#3a86ff}
+  .avatars{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+  .av{font-size:clamp(28px,8vw,40px);aspect-ratio:1;border:none;border-radius:18px;background:#f1f5f9;cursor:pointer;
+    box-shadow:0 4px 0 #cbd5e1;padding:0}
+  .av[aria-checked="true"]{background:#ffd166;box-shadow:0 4px 0 #e09f00;transform:scale(1.06)}
+  .sub{font-family:'Fredoka',sans-serif;font-size:clamp(24px,6.5vw,30px);margin:26px 0 0}
+  .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:12px}
+  @media (min-width:600px){.stats{grid-template-columns:repeat(4,1fr)}}
+  .stat{background:#fff;border-radius:24px;padding:12px 8px;text-align:center;box-shadow:0 5px 0 #d6e4f0;display:flex;flex-direction:column;align-items:center;gap:2px}
+  .stat .em{font-size:32px}
+  .stat b{font-family:'Fredoka',sans-serif;font-size:34px;line-height:1}
+  .stat small{font-size:16px;opacity:.8}
+  .badges{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:12px}
+  @media (min-width:600px){.badges{grid-template-columns:repeat(3,1fr)}}
+  .badge{background:#fff;border-radius:24px;padding:14px 10px;text-align:center;box-shadow:0 5px 0 #d6e4f0;
+    display:flex;flex-direction:column;align-items:center;gap:4px;position:relative;opacity:.55}
+  .badge .em{font-size:44px;filter:grayscale(1)}
+  .badge b{font-family:'Fredoka',sans-serif;font-size:19px;line-height:1.1}
+  .badge small{font-size:15px;opacity:.8;line-height:1.2}
+  .badge:not(.on)::after{content:"🔒";position:absolute;top:8px;right:10px;font-size:18px}
+  .badge.on{opacity:1;background:#fffbe6;box-shadow:0 5px 0 #f4c95d}
+  .badge.on .em{filter:none;animation:bob 2.4s ease-in-out infinite}
+  .lesson-link{font-family:'Fredoka',sans-serif;font-size:22px;color:var(--ink);text-decoration:none}
+  .empty{font-size:19px;margin:10px 0 0;opacity:.8}
+  .games{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+  .games li[hidden],.empty[hidden]{display:none}
+  .games li{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#f8fafc;border-radius:18px;padding:8px 12px}
+  .games li a{display:flex;align-items:center;gap:8px;color:var(--ink);text-decoration:none;font-family:'Fredoka',sans-serif;font-size:20px;flex:1;min-width:150px}
+  .games .em{font-size:28px}
+  .gstats{font-size:17px;white-space:nowrap}
+  .note{font-size:16px;opacity:.75;margin:22px 0 0}
+  .reset{font-size:18px;color:#be123c;border-color:#fecdd3;box-shadow:0 4px 0 #fecdd3;margin-top:10px}
+</style>

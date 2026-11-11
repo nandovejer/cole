@@ -1,16 +1,45 @@
 // «El, la, los, las» with Lola. Each game is a screen with its own URL (#learn, #balloons…),
 // so the browser's back button and links work.
+// In Spanish everything is said in Spanish. In English, Lola speaks England English and the
+// Spanish words being learned (es(...)) are said with the Spanish voice.
 import { say as voiceSay, stop as voiceStop, voice, audioCtx, unlock, preload } from '../../lib/voice.js';
+import * as progress from '../../lib/progress.js';
 import {
-  ARTS, NOUNS, ANIMALS, BODY, SENT, CHEERS, L, WINS,
-  artOf, wordOf, picOf, phrase,
+  ARTS, NOUNS, ANIMALS, BODY, SENT, WHERE, TEXTS,
+  artOf, wordOf, picOf, phrase, glossOf, es, GLOSS,
 } from './data.js';
+
+const LESSON = 'el-la-los-las';
+const LANG = document.documentElement.lang === 'en' ? 'en' : 'es';
+const { L, CHEERS, WINS } = TEXTS[LANG];
 
 const rnd = (a) => a[Math.floor(Math.random() * a.length)];
 const shuffle = (a) => a.map((v) => [Math.random(), v]).sort((x, y) => x[0] - y[0]).map((v) => v[1]);
 const $ = (id) => document.getElementById(id);
-const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
-const say = (segs, opts = {}) => voiceSay(segs, { lang: 'es', ...opts });
+const say = (segs, opts = {}) => voiceSay(segs, { lang: LANG, ...opts });
+
+// Spanish pieces (always with the Spanish voice)
+const P = (n, pl) => es(phrase(n, pl));
+const W = (n, pl) => es(wordOf(n, pl));
+const C = (a, w) => es(a + ' ' + w);
+
+/** Text for the bubble from the phrases (capital letter after . ! ?). */
+function txt(segs) {
+  let out = '';
+  for (const s of [segs].flat(Infinity)) {
+    let t = typeof s === 'string' ? s : s.t;
+    if (!out || /[.!?:]$/.test(out)) t = t.replace(/\p{L}/u, (c) => c.toUpperCase());
+    out += (out ? ' ' : '') + t;
+  }
+  return out;
+}
+
+/** English meaning under the Spanish word (only in the English version). */
+function gloss(id, n, pl) {
+  const el = $(id);
+  if (!el) return;
+  el.textContent = LANG === 'en' && n ? glossOf(n, pl) : '';
+}
 
 /* ================= effects ================= */
 function tone(freqs, dur = 0.12, type = 'triangle', vol = 0.16) {
@@ -30,21 +59,22 @@ const ding = () => tone([660, 880, 1100]);
 const boop = () => tone([300, 220], 0.15, 'sine');
 const popS = () => tone([1200, 500], 0.05, 'square', 0.08);
 
-/* ================= Lola ================= */
-const STARS_KEY = 'coleStars';
-let stars = 0;
-try { stars = parseInt(localStorage.getItem(STARS_KEY) || '0', 10) || 0; } catch {}
-function addStar() {
-  stars++;
-  document.querySelectorAll('[data-stars]').forEach((el) => (el.textContent = stars));
-  try { localStorage.setItem(STARS_KEY, stars); } catch {}
+/* ================= progress (localStorage) ================= */
+let mistakes = 0;
+function round() { mistakes = 0; }
+function right() { ding(); happy(); progress.answer(LESSON, current, true); }
+function wrong(b) {
+  if (b) { b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); }
+  boop(); mistakes++; progress.answer(LESSON, current, false);
 }
+
+/* ================= Lola ================= */
 let lastSegs = [];
-/** Lola says it: shows `text` in the bubble and plays the `segs` (one mp3 each). */
-function talk(text, segs) {
-  $('bubbleText').textContent = text;
-  lastSegs = segs || [text];
-  return say(lastSegs);
+/** Lola says it: shows the text in the bubble and plays the phrases (one mp3 each). */
+function talk(segs, display) {
+  lastSegs = segs;
+  $('bubbleText').textContent = display ?? txt(segs);
+  return say(segs);
 }
 $('bubble').onclick = () => say(lastSegs);
 $('lola').onclick = () => { happy(); say(L.tickle); };
@@ -62,8 +92,9 @@ function confetti() {
 let replay = null;
 function win(key, again) {
   const [title, text, em] = WINS[key];
-  addStar(); confetti(); tone([523, 659, 784, 1046], 0.14); happy();
-  $('prizeTitle').textContent = title; $('prizeText').textContent = text; $('prizeEm').textContent = em;
+  progress.win(LESSON, key, mistakes === 0);
+  confetti(); tone([523, 659, 784, 1046], 0.14); happy();
+  $('prizeTitle').textContent = txt(title); $('prizeText').textContent = txt(text); $('prizeEm').textContent = em;
   replay = again; $('overlay').classList.add('on');
   setTimeout(() => say([title, text, L.star]), 300);
 }
@@ -83,6 +114,7 @@ function show(id) {
   stopBalloons();
   window.scrollTo({ top: 0, behavior: 'smooth' });
   if (!started) return;
+  if (id !== 'menu') progress.played(LESSON, id);
   const p = talk(L.intros[id]);
   ({ learn: initLearn, choose: initChoose, listen: initListen, balloons: initBalloons, sort: initSort,
      plural: initPlural, detective: initDetective, sentence: initSentence, unicorn: initUnicorn, body: initBody })[id]?.(p);
@@ -98,7 +130,7 @@ document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-go]');
   if (b) { e.preventDefault(); go(b.dataset.go); }
 });
-document.addEventListener('click', (e) => { const b = e.target.closest('[data-say]'); if (b) say(b.dataset.say); });
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-tag]'); if (b) talk(L.tags[b.dataset.tag]); });
 // The top arrow: inside a game it goes back to the lesson's games; in the menu, back to the subject.
 $('backBtn')?.addEventListener('click', (e) => {
   if (current !== 'menu') { e.preventDefault(); go('menu'); }
@@ -109,7 +141,6 @@ function drawProg(el, total, done) {
   el.innerHTML = '';
   for (let i = 0; i < total; i++) { const d = document.createElement('i'); if (i < done) d.className = 'done'; el.appendChild(d); }
 }
-function shake(b) { b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); boop(); }
 const after = (p, fn) => (p || Promise.resolve()).then(fn);
 
 /* ============ 1. Get to know them ============ */
@@ -117,7 +148,7 @@ const LEARN_EX = { el: ['gato', '🐱', 'sol', '☀️'], la: ['luna', '🌙', '
 const LEARN_BASE = { el: ['🐶', 'el perro'], la: ['🏠', 'la casa'], los: ['🐶🐶🐶', 'los perros'], las: ['🏠🏠🏠', 'las casas'] };
 let seen = new Set(), learnWon = false;
 function initLearn() {
-  seen = new Set(); learnWon = false;
+  round(); seen = new Set(); learnWon = false;
   document.querySelectorAll('.house').forEach((h) => {
     h.classList.remove('seen'); let k = 0;
     const a = h.dataset.a;
@@ -131,7 +162,7 @@ function initLearn() {
       } else {
         const w = LEARN_EX[a][(i - 1) * 2], e = LEARN_EX[a][(i - 1) * 2 + 1];
         h.querySelector('.ex').textContent = e; h.querySelector('.lbl').textContent = a + ' ' + w;
-        talk(cap(a) + ' ' + w + '. ' + a + ' ' + w + '.', [a + ' ' + w, a + ' ' + w]);
+        talk([C(a, w), C(a, w)]);
       }
       if (seen.size === 4 && !learnWon) { learnWon = true; setTimeout(() => win('learn', initLearn), 4500); }
     };
@@ -142,39 +173,40 @@ $('tip').onclick = () => talk(L.tip);
 /* ============ 2. Which one? ============ */
 let chList = [], chIdx = 0, chLock = false; const CH_TOTAL = 8;
 function initChoose(p) {
+  round();
   chList = shuffle(shuffle(NOUNS).slice(0, CH_TOTAL).map((n, i) => ({ n, pl: i % 2 === 1 })));
   chIdx = 0; nextChoose(p);
 }
 function nextChoose(p) {
   chLock = false; drawProg($('chProg'), CH_TOTAL, chIdx);
   const { n, pl } = chList[chIdx];
-  $('chPic').textContent = picOf(n, pl); $('chPic').onclick = () => say(wordOf(n, pl));
-  $('chWord').textContent = wordOf(n, pl);
+  $('chPic').textContent = picOf(n, pl); $('chPic').onclick = () => say(W(n, pl));
+  $('chWord').textContent = wordOf(n, pl); gloss('chGloss', n, pl);
   const bl = $('chBlank'); bl.className = 'blank'; bl.textContent = '__';
   const box = $('chOpts'); box.innerHTML = '';
   ARTS.forEach((a) => { const b = artBtn(a); b.onclick = () => pickChoose(b, n, pl); box.appendChild(b); });
-  after(p, () => say([pl ? L.many : L.one, wordOf(n, pl), L.whichArt], { queue: true }));
+  after(p, () => say([pl ? L.many : L.one, W(n, pl), L.whichArt], { queue: true }));
 }
 function pickChoose(b, n, pl) {
   if (chLock) return;
   const ok = artOf(n, pl);
   if (b.dataset.a === ok) {
-    chLock = true; ding(); happy(); b.classList.add('good');
+    chLock = true; right(); b.classList.add('good');
     const bl = $('chBlank'); bl.textContent = ok; bl.className = 'blank filled bg-' + ok;
-    const c = rnd(CHEERS); talk(c + ' ' + cap(phrase(n, pl)) + '.', [c, phrase(n, pl)]);
+    talk([rnd(CHEERS), P(n, pl)]);
     chIdx++; drawProg($('chProg'), CH_TOTAL, chIdx);
     setTimeout(() => (chIdx >= CH_TOTAL ? win('choose', () => initChoose()) : nextChoose()), 2600);
   } else {
-    shake(b);
+    wrong(b);
     const a = b.dataset.a, plA = a.endsWith('s');
     if (plA !== pl) talk(pl ? L.manyNeedS : L.oneNoS);
-    else talk(`${L.almostSayIt} ¿${a} ${wordOf(n, pl)}? ${L.soundsOdd}`, [L.almostSayIt, a + ' ' + wordOf(n, pl), L.soundsOdd]);
+    else talk([L.almostSayIt, C(a, wordOf(n, pl)), L.soundsOdd]);
   }
 }
 
 /* ============ 3. Listen and tap ============ */
 let lsIdx = 0, lsLock = false, lsTarget = null; const LS_TOTAL = 6;
-function initListen(p) { lsIdx = 0; nextListen(p); }
+function initListen(p) { round(); lsIdx = 0; nextListen(p); }
 function nextListen(p) {
   lsLock = false; drawProg($('lsProg'), LS_TOTAL, lsIdx);
   const pool = shuffle(NOUNS); const n = pool[0], other = pool[1];
@@ -186,32 +218,32 @@ function nextListen(p) {
     const b = document.createElement('button'); b.className = 'pic'; b.textContent = picOf(o.n, o.pl);
     b.onclick = () => pickListen(b, o); box.appendChild(b);
   });
-  after(p, () => say(phrase(n, pl), { queue: true }));
+  after(p, () => say(P(n, pl), { queue: true }));
 }
-$('speakBtn').onclick = () => lsTarget && say(phrase(lsTarget.n, lsTarget.pl));
+$('speakBtn').onclick = () => lsTarget && say(P(lsTarget.n, lsTarget.pl));
 function pickListen(b, o) {
   if (lsLock) return;
   const t = lsTarget;
   if (o.n === t.n && o.pl === t.pl) {
-    lsLock = true; ding(); happy(); b.classList.add('good');
-    const c = rnd(CHEERS); talk(c + ' ' + cap(phrase(t.n, t.pl)) + '.', [c, phrase(t.n, t.pl)]);
+    lsLock = true; right(); b.classList.add('good');
+    talk([rnd(CHEERS), P(t.n, t.pl)]);
     lsIdx++; drawProg($('lsProg'), LS_TOTAL, lsIdx);
     setTimeout(() => (lsIdx >= LS_TOTAL ? win('listen', () => initListen()) : nextListen()), 2400);
   } else {
-    shake(b);
-    const target = phrase(t.n, t.pl);
-    if (o.n === t.n) { const l = o.pl ? L.thereMany : L.thereOne; talk(l + ' ' + target, [l, target]); }
-    else talk(`${L.thatIs} ${phrase(o.n, o.pl)}. ${L.listenAgain} ${target}`, [L.thatIs, phrase(o.n, o.pl), L.listenAgain, target]);
+    wrong(b);
+    if (o.n === t.n) talk([o.pl ? L.thereMany : L.thereOne, P(t.n, t.pl)]);
+    else talk([L.thatIs, P(o.n, o.pl), L.listenAgain, P(t.n, t.pl)]);
   }
 }
 
 /* ============ 4. Balloons ============ */
 let bTarget = '', bScore = 0, bTimer = null, bPlaying = false; const B_TOTAL = 6;
 function initBalloons() {
+  round();
   bScore = 0; bTarget = rnd(ARTS); bPlaying = false;
   $('target').innerHTML = '';
   const lbl = document.createElement('span'); lbl.textContent = $('target').dataset.label;
-  const b = artBtn(bTarget); b.onclick = () => say(bTarget);
+  const b = artBtn(bTarget); b.onclick = () => say(es(bTarget));
   $('target').append(lbl, b);
   drawProg($('bProg'), B_TOTAL, 0);
   $('sky').querySelectorAll('.balloon,.burst').forEach((x) => x.remove());
@@ -227,9 +259,9 @@ const BCOL = ['#ffe0e6', '#fff3c4', '#d9f99d', '#cdeafe', '#ead7ff', '#ffe4cc'];
 // balloon size depends on the screen (smaller on mobile)
 const bSize = () => ($('sky').clientWidth < 360 ? 130 : $('sky').clientWidth < 520 ? 145 : 160);
 function slots() {
-  const sky = $('sky'), W = sky.clientWidth, H = sky.clientHeight, S = bSize();
-  const cols = Math.max(2, Math.floor(W / (S + 10))), rows = Math.max(2, Math.floor((H - 30) / (S + 25)));
-  const cw = W / cols, list = [];
+  const sky = $('sky'), Wd = sky.clientWidth, H = sky.clientHeight, S = bSize();
+  const cols = Math.max(2, Math.floor(Wd / (S + 10))), rows = Math.max(2, Math.floor((H - 30) / (S + 25)));
+  const cw = Wd / cols, list = [];
   for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++)
     list.push({ key: r + '-' + c, left: c * cw + (cw - S) / 2, top: 16 + r * (S + 25) });
   return list;
@@ -243,8 +275,8 @@ function spawn() {
   if (!bPlaying) return;
   const slot = freeSlot();
   if (!slot) { // sky full: the oldest wrong balloon flies away
-    const wrong = [...$('sky').querySelectorAll('.balloon:not(.leaving)')].find((b) => b.dataset.ok !== '1');
-    if (wrong) flyAway(wrong);
+    const bad = [...$('sky').querySelectorAll('.balloon:not(.leaving)')].find((b) => b.dataset.ok !== '1');
+    if (bad) flyAway(bad);
     return;
   }
   const wantM = bTarget === 'el' || bTarget === 'los';
@@ -272,16 +304,16 @@ function hitBalloon(b, n, pl) {
   if (!bPlaying) return;
   const sky = $('sky'), r = b.getBoundingClientRect(), sr = sky.getBoundingClientRect();
   if (artOf(n, pl) === bTarget) {
-    popS();
+    popS(); progress.answer(LESSON, current, true);
     const bu = document.createElement('div'); bu.className = 'burst'; bu.textContent = '💥';
     bu.style.left = r.left - sr.left + 40 + 'px'; bu.style.top = r.top - sr.top + 30 + 'px';
     sky.appendChild(bu); setTimeout(() => bu.remove(), 500);
     b.remove(); bScore++; drawProg($('bProg'), B_TOTAL, bScore);
-    talk(L.yes + ' ' + cap(phrase(n, pl)) + '.', [L.yes, phrase(n, pl)]);
+    talk([L.yes, P(n, pl)]);
     if (bScore >= B_TOTAL) { stopBalloons(); setTimeout(() => win('balloons', initBalloons), 1400); }
   } else {
-    boop(); b.style.filter = 'grayscale(1)'; b.style.pointerEvents = 'none';
-    talk(`${L.oops} ${phrase(n, pl)}. ${L.find(bTarget)}`, [L.oops, phrase(n, pl), L.find(bTarget)]);
+    wrong(); b.style.filter = 'grayscale(1)'; b.style.pointerEvents = 'none';
+    talk([L.oops, P(n, pl), L.find(bTarget)]);
     setTimeout(() => flyAway(b), 1800);
   }
 }
@@ -289,6 +321,7 @@ function hitBalloon(b, n, pl) {
 /* ============ 5. Little houses ============ */
 let soList = [], soIdx = 0, soLock = false; const SO_TOTAL = 8;
 function initSort(p) {
+  round();
   soList = shuffle(shuffle(NOUNS).slice(0, SO_TOTAL).map((n, i) => ({ n, pl: i % 2 === 1 }))); soIdx = 0;
   ARTS.forEach((a) => ($('hc-' + a).textContent = ''));
   document.querySelectorAll('.hbtn').forEach((h) => (h.onclick = () => pickSort(h)));
@@ -298,70 +331,71 @@ function nextSort(p) {
   soLock = false; drawProg($('soProg'), SO_TOTAL, soIdx);
   const { n, pl } = soList[soIdx];
   $('soCard').classList.remove('fly');
-  $('soPic').textContent = picOf(n, pl); $('soWord').textContent = wordOf(n, pl);
-  $('soCard').onclick = () => say(wordOf(n, pl));
-  after(p, () => say([wordOf(n, pl), L.whichHouse], { queue: true }));
+  $('soPic').textContent = picOf(n, pl); $('soWord').textContent = wordOf(n, pl); gloss('soGloss', n, pl);
+  $('soCard').onclick = () => say(W(n, pl));
+  after(p, () => say([W(n, pl), L.whichHouse], { queue: true }));
 }
 function pickSort(h) {
   if (soLock) return;
   const { n, pl } = soList[soIdx], ok = artOf(n, pl);
   if (h.dataset.h === ok) {
-    soLock = true; ding(); happy(); h.classList.remove('good'); void h.offsetWidth; h.classList.add('good');
+    soLock = true; right(); h.classList.remove('good'); void h.offsetWidth; h.classList.add('good');
     $('soCard').classList.add('fly');
     setTimeout(() => { $('hc-' + ok).textContent += n.e; }, 400);
-    const c = rnd(CHEERS); talk(c + ' ' + cap(phrase(n, pl)) + '.', [c, phrase(n, pl)]);
+    talk([rnd(CHEERS), P(n, pl)]);
     soIdx++; drawProg($('soProg'), SO_TOTAL, soIdx);
     setTimeout(() => (soIdx >= SO_TOTAL ? win('sort', () => initSort()) : nextSort()), 2300);
   } else {
-    shake(h);
+    wrong(h);
     const a = h.dataset.h;
     if (a.endsWith('s') !== pl) talk(pl ? L.manyHouseS : L.oneHouseNoS);
-    else talk(`${L.almostSay} ¿${a} ${wordOf(n, pl)}? ${L.soundsGood}`, [L.almostSay, a + ' ' + wordOf(n, pl), L.soundsGood]);
+    else talk([L.almostSay, C(a, wordOf(n, pl)), L.soundsGood]);
   }
 }
 
 /* ============ 6. One and many ============ */
 let plList = [], plIdx = 0, plLock = false; const PL_TOTAL = 6;
-function initPlural(p) { plList = shuffle(NOUNS).slice(0, PL_TOTAL).map((n, i) => ({ n, toPl: i % 3 !== 2 })); plIdx = 0; nextPlural(p); }
+function initPlural(p) { round(); plList = shuffle(NOUNS).slice(0, PL_TOTAL).map((n, i) => ({ n, toPl: i % 3 !== 2 })); plIdx = 0; nextPlural(p); }
 function nextPlural(p) {
   plLock = false; drawProg($('plProg'), PL_TOTAL, plIdx);
   const { n, toPl } = plList[plIdx], fromPl = !toPl;
   const q = toPl ? L.ifMany : L.ifOne;
-  $('plFrom').textContent = picOf(n, fromPl); $('plFromTxt').textContent = phrase(n, fromPl);
+  $('plFrom').textContent = picOf(n, fromPl); $('plFromTxt').textContent = phrase(n, fromPl); gloss('plGloss', n, fromPl);
   $('plTo').textContent = picOf(n, toPl);
-  $('plAsk').textContent = '⬇️ ' + q + ' ⬇️';
-  const right = phrase(n, toPl);
+  $('plAsk').textContent = '⬇️ ' + txt(q) + ' ⬇️';
+  const ok = phrase(n, toPl);
   const otherArt = { el: 'la', la: 'el', los: 'las', las: 'los' }[artOf(n, toPl)];
   const wrong1 = otherArt + ' ' + wordOf(n, toPl); // wrong article
   const wrong2 = artOf(n, toPl) + ' ' + wordOf(n, !toPl); // word not changed
   const box = $('plOpts'); box.innerHTML = '';
-  shuffle([right, wrong1, wrong2]).forEach((t) => {
+  shuffle([ok, wrong1, wrong2]).forEach((t) => {
     const b = document.createElement('button'); b.className = 'phr'; b.textContent = t;
-    b.onclick = () => pickPlural(b, t, right); box.appendChild(b);
+    b.onclick = () => pickPlural(b, t, ok); box.appendChild(b);
   });
-  $('plFromTxt').onclick = () => say(phrase(n, fromPl));
-  $('plAsk').onclick = () => say([phrase(n, fromPl), q]);
-  after(p, () => say([phrase(n, fromPl), q], { queue: true }));
+  $('plFromTxt').onclick = () => say(P(n, fromPl));
+  $('plAsk').onclick = () => say([P(n, fromPl), q]);
+  after(p, () => say([P(n, fromPl), q], { queue: true }));
 }
-function pickPlural(b, t, right) {
+function pickPlural(b, t, ok) {
   if (plLock) return;
-  if (t === right) {
-    plLock = true; ding(); happy(); b.classList.add('good');
-    const c = rnd(CHEERS); talk(c + ' ' + cap(right) + '.', [c, right]);
+  if (t === ok) {
+    plLock = true; right(); b.classList.add('good');
+    talk([rnd(CHEERS), es(ok)]);
     plIdx++; drawProg($('plProg'), PL_TOTAL, plIdx);
     setTimeout(() => (plIdx >= PL_TOTAL ? win('plural', () => initPlural()) : nextPlural()), 2300);
   } else {
-    shake(b);
-    talk(`${L.mmm} ${t}... ${L.notGood}`, [L.mmm, t, L.notGood]);
+    wrong(b);
+    talk([L.mmm, es(t), L.notGood]);
   }
 }
 
 /* ============ 7. Detective Lola ============ */
 let deList = [], deIdx = 0, deLock = false; const DE_TOTAL = 8;
 function initDetective(p) {
+  round();
   deList = shuffle(shuffle(NOUNS).slice(0, DE_TOTAL).map((n, i) => {
-    const pl = Math.random() < 0.5, right = artOf(n, pl);
-    const bad = i % 2 === 0; const said = bad ? rnd(ARTS.filter((a) => a !== right)) : right;
+    const pl = Math.random() < 0.5, ok = artOf(n, pl);
+    const bad = i % 2 === 0; const said = bad ? rnd(ARTS.filter((a) => a !== ok)) : ok;
     return { n, pl, said, bad };
   }));
   deIdx = 0;
@@ -371,11 +405,11 @@ function initDetective(p) {
 function nextDet(p) {
   deLock = false; drawProg($('deProg'), DE_TOTAL, deIdx);
   const d = deList[deIdx], said = d.said + ' ' + wordOf(d.n, d.pl);
-  $('dePic').textContent = picOf(d.n, d.pl);
+  $('dePic').textContent = picOf(d.n, d.pl); gloss('deGloss', d.n, d.pl);
   $('deTxt').textContent = said; $('deTxt').style.color = '';
-  $('deTxt').onclick = () => say(said);
+  $('deTxt').onclick = () => say(es(said));
   $('deOpts').style.display = 'flex'; $('deFix').style.display = 'none';
-  after(p, () => say([said, L.saidRight], { queue: true }));
+  after(p, () => say([es(said), L.saidRight], { queue: true }));
 }
 function detNext() {
   deIdx++; drawProg($('deProg'), DE_TOTAL, deIdx);
@@ -383,9 +417,9 @@ function detNext() {
 }
 function pickDet(saysBad) {
   if (deLock) return;
-  const d = deList[deIdx], right = phrase(d.n, d.pl), said = d.said + ' ' + wordOf(d.n, d.pl);
+  const d = deList[deIdx], ok = phrase(d.n, d.pl), said = d.said + ' ' + wordOf(d.n, d.pl);
   if (saysBad === d.bad) {
-    deLock = true; ding(); happy();
+    deLock = true; right();
     if (d.bad) { // now let them fix it
       talk(L.caught);
       $('deOpts').style.display = 'none'; const box = $('deFix'); box.innerHTML = ''; box.style.display = 'flex';
@@ -393,27 +427,28 @@ function pickDet(saysBad) {
         const b = artBtn(a);
         b.onclick = () => {
           if (a === artOf(d.n, d.pl)) {
-            ding(); b.classList.add('good'); $('deTxt').textContent = right; $('deTxt').style.color = '#16a34a';
+            ding(); b.classList.add('good'); $('deTxt').textContent = ok; $('deTxt').style.color = '#16a34a';
             box.querySelectorAll('button').forEach((x) => (x.onclick = null));
-            talk(`${L.thatsIt} ${cap(right)}.`, [L.thatsIt, right]); detNext();
+            talk([L.thatsIt, es(ok)]); detNext();
           } else {
-            shake(b); const w = a + ' ' + wordOf(d.n, d.pl);
-            talk(`¿${w}? ${L.notThat}`, [w, L.notThat]);
+            wrong(b);
+            talk([C(a, wordOf(d.n, d.pl)), L.notThat]);
           }
         };
         box.appendChild(b);
       });
-    } else { talk(`${L.yesRight} ${right}.`, [L.yesRight, right]); detNext(); }
+    } else { talk([L.yesRight, es(ok)]); detNext(); }
   } else {
-    boop();
-    if (d.bad) talk(`${L.listenAgain} ${said}. ${L.sure}`, [L.listenAgain, said, L.sure]);
-    else { talk(`${L.iThinkRight} ${right}. ${L.listen}`, [L.iThinkRight, right, L.listen]); deLock = true; detNext(); }
+    wrong();
+    if (d.bad) talk([L.listenAgain, es(said), L.sure]);
+    else { talk([L.iThinkRight, es(ok), L.listen]); deLock = true; detNext(); }
   }
 }
 
 /* ============ 8. Sentences ============ */
 let snList = [], snIdx = 0, snLock = false; const SN_TOTAL = 6;
 function initSentence(p) {
+  round();
   const t = shuffle(SENT);
   snList = shuffle(NOUNS).slice(0, SN_TOTAL).map((n, i) => ({ n, pl: Math.random() < 0.5, t: t[i % t.length] }));
   snIdx = 0; nextSentence(p);
@@ -422,37 +457,38 @@ const sentStart = (s) => (s.pl && s.t.ap ? s.t.ap : s.t.a);
 function nextSentence(p) {
   snLock = false; drawProg($('snProg'), SN_TOTAL, snIdx);
   const s = snList[snIdx];
-  $('snPic').textContent = picOf(s.n, s.pl); $('snPic').onclick = () => say(wordOf(s.n, s.pl));
+  $('snPic').textContent = picOf(s.n, s.pl); $('snPic').onclick = () => say(W(s.n, s.pl)); gloss('snGloss', s.n, s.pl);
   $('snTxt').innerHTML = `${sentStart(s)} <span class="blank" id="snBlank">__</span> ${wordOf(s.n, s.pl)}${s.t.b}`;
-  $('snTxt').onclick = () => say([sentStart(s), wordOf(s.n, s.pl)]);
+  $('snTxt').onclick = () => say([es(sentStart(s)), W(s.n, s.pl)]);
   const box = $('snOpts'); box.innerHTML = '';
   ARTS.forEach((a) => { const b = artBtn(a); b.onclick = () => pickSentence(b, s); box.appendChild(b); });
-  after(p, () => say([sentStart(s), wordOf(s.n, s.pl), L.missing], { queue: true }));
+  after(p, () => say([es(sentStart(s)), W(s.n, s.pl), L.missing], { queue: true }));
 }
 function pickSentence(b, s) {
   if (snLock) return;
   const ok = artOf(s.n, s.pl);
   if (b.dataset.a === ok) {
-    snLock = true; ding(); happy(); b.classList.add('good');
+    snLock = true; right(); b.classList.add('good');
     const bl = $('snBlank'); bl.textContent = ok; bl.className = 'blank filled bg-' + ok;
     const c = rnd(CHEERS);
-    talk(`${c} ${sentStart(s)} ${phrase(s.n, s.pl)}${s.t.b}`, [c, sentStart(s), phrase(s.n, s.pl)]);
+    talk([c, es(sentStart(s)), P(s.n, s.pl)], `${txt(c)} ${sentStart(s)} ${phrase(s.n, s.pl)}${s.t.b}`);
     snIdx++; drawProg($('snProg'), SN_TOTAL, snIdx);
     setTimeout(() => (snIdx >= SN_TOTAL ? win('sentence', () => initSentence()) : nextSentence()), 2800);
   } else {
-    shake(b);
+    wrong(b);
     const a = b.dataset.a;
     if (a.endsWith('s') !== s.pl) talk(s.pl ? L.lookMany : L.lookOne);
-    else talk(`${L.readWith} ${a}. ${L.soundsGood}`, [L.readWith, a, L.soundsGood]);
+    else talk([L.readWith, es(a), L.soundsGood]);
   }
 }
 
 /* ============ 9. The unicorn and its friends ============ */
 let unIdx = 0, unLock = false, unT = null; const UN_TOTAL = 6;
 const animalPool = () => NOUNS.filter((n) => ANIMALS.includes(n.s));
-const unAsk = (n, pl) => [pl ? L.whereAre : L.whereIs, phrase(n, pl)];
-const unAskTxt = (n, pl) => unAsk(n, pl).join(' ') + '?';
+const unAsk = (n, pl) => [es(pl ? WHERE.many : WHERE.one), P(n, pl)];
+const unAskTxt = (n, pl) => `${pl ? WHERE.many : WHERE.one} ${phrase(n, pl)}?`;
 function initUnicorn(p) {
+  round();
   unIdx = 0; for (let i = 0; i < 6; i++) $('rb' + i).classList.remove('on');
   $('uniSvg').classList.remove('fly'); nextUnicorn(p);
 }
@@ -460,7 +496,8 @@ function nextUnicorn(p) {
   unLock = false; drawProg($('unProg'), UN_TOTAL, unIdx);
   const pool = shuffle(animalPool()), n = pool[0], o = pool[1], pl = Math.random() < 0.5;
   unT = { n, pl };
-  $('unTxt').innerHTML = (pl ? L.whereAre : L.whereIs) + ` <span class="hlart bg-${artOf(n, pl)}">${artOf(n, pl)}</span> ${wordOf(n, pl)}?`;
+  $('unTxt').innerHTML = (pl ? WHERE.many : WHERE.one) + ` <span class="hlart bg-${artOf(n, pl)}">${artOf(n, pl)}</span> ${wordOf(n, pl)}?`;
+  gloss('unGloss', n, pl);
   $('unTxt').onclick = () => say(unAsk(n, pl));
   const box = $('unPics'); box.innerHTML = '';
   shuffle([{ n, pl }, { n, pl: !pl }, { n: o, pl }, { n: o, pl: !pl }]).forEach((x) => {
@@ -473,20 +510,19 @@ function pickUnicorn(b, x) {
   if (unLock) return;
   const t = unT;
   if (x.n === t.n && x.pl === t.pl) {
-    unLock = true; ding(); happy(); b.classList.add('good');
+    unLock = true; right(); b.classList.add('good');
     const u = $('uniSvg'); u.classList.remove('hop'); void u.offsetWidth; u.classList.add('hop');
     $('rb' + unIdx).classList.add('on');
-    const c = rnd(CHEERS), here = t.pl ? L.hereAre : L.hereIs;
-    talk(`${c} ${here} ${phrase(t.n, t.pl)}!`, [c, here, phrase(t.n, t.pl)]);
+    talk([rnd(CHEERS), t.pl ? L.hereAre : L.hereIs, P(t.n, t.pl)]);
     unIdx++; drawProg($('unProg'), UN_TOTAL, unIdx);
     if (unIdx >= UN_TOTAL) {
       setTimeout(() => { $('uniSvg').classList.add('fly'); tone([523, 659, 784, 988, 1175], 0.12); }, 900);
       setTimeout(() => win('unicorn', () => initUnicorn()), 3200);
     } else setTimeout(nextUnicorn, 2400);
   } else {
-    shake(b);
-    if (x.n === t.n) { const l = x.pl ? L.readMany : L.readOne; talk(l + ' ' + unAskTxt(t.n, t.pl), [l, ...unAsk(t.n, t.pl)]); }
-    else talk(`${L.thatOne} ${phrase(x.n, x.pl)}. ${unAskTxt(t.n, t.pl)}`, [L.thatOne, phrase(x.n, x.pl), ...unAsk(t.n, t.pl)]);
+    wrong(b);
+    if (x.n === t.n) talk([x.pl ? L.readMany : L.readOne, ...unAsk(t.n, t.pl)], `${txt(x.pl ? L.readMany : L.readOne)} ${unAskTxt(t.n, t.pl)}`);
+    else talk([L.thatOne, P(x.n, x.pl), ...unAsk(t.n, t.pl)], `${txt([L.thatOne, P(x.n, x.pl)])}. ${unAskTxt(t.n, t.pl)}`);
   }
 }
 
@@ -499,41 +535,40 @@ function drawRings(part, cls) {
     c.setAttribute('cx', cx); c.setAttribute('cy', cy); c.setAttribute('r', r); c.setAttribute('class', cls); g.appendChild(c);
   });
 }
-function initBody(p) { boList = shuffle(BODY).slice(0, BO_TOTAL); boIdx = 0; $('rings').innerHTML = ''; nextBody(p); }
+function initBody(p) { round(); boList = shuffle(BODY).slice(0, BO_TOTAL); boIdx = 0; $('rings').innerHTML = ''; nextBody(p); }
 function nextBody(p) {
   boLock = false; drawProg($('boProg'), BO_TOTAL, boIdx);
   const part = boList[boIdx];
   $('rings').querySelectorAll('.ring').forEach((x) => x.remove());
   drawRings(part, 'ring');
   $('boWord').textContent = part.s; const bl = $('boBlank'); bl.className = 'blank'; bl.textContent = '__';
-  $('boWord').onclick = () => say(part.s);
+  $('boGloss').textContent = LANG === 'en' ? GLOSS[part.s] : ''; // body parts: no "a"/"an"
+  $('boWord').onclick = () => say(es(part.s));
   const box = $('boOpts'); box.innerHTML = '';
   ARTS.forEach((a) => { const b = artBtn(a); b.onclick = () => pickBody(b, part); box.appendChild(b); });
-  after(p, () => say([L.glows, part.s, L.whichArt], { queue: true }));
+  after(p, () => say([L.glows, es(part.s), L.whichArt], { queue: true }));
 }
 function pickBody(b, part) {
   if (boLock) return;
-  const right = part.a + ' ' + part.s;
+  const ok = part.a + ' ' + part.s;
   if (b.dataset.a === part.a) {
-    boLock = true; ding(); happy(); b.classList.add('good');
+    boLock = true; right(); b.classList.add('good');
     const bl = $('boBlank'); bl.textContent = part.a; bl.className = 'blank filled bg-' + part.a;
     $('rings').querySelectorAll('.ring').forEach((x) => x.remove()); drawRings(part, 'ringok');
-    const c = rnd(CHEERS);
-    talk(`${c} ${cap(right)}. ${L.touch} ${right}!`, [c, right, L.touch, right]);
+    talk([rnd(CHEERS), es(ok), L.touch, es(ok)]);
     boIdx++; drawProg($('boProg'), BO_TOTAL, boIdx);
     setTimeout(() => (boIdx >= BO_TOTAL ? win('body', () => initBody()) : nextBody()), 3000);
   } else {
-    shake(b);
-    const pl = part.a.endsWith('s'), w = b.dataset.a + ' ' + part.s;
+    wrong(b);
+    const pl = part.a.endsWith('s');
     if (b.dataset.a.endsWith('s') !== pl) talk(pl ? L.glowTwo : L.glowOne);
-    else talk(`${L.almost} ¿${w}? ${L.sayAloud}`, [L.almost, w, L.sayAloud]);
+    else talk([L.almost, C(b.dataset.a, part.s), L.sayAloud]);
   }
 }
-
 /* ============ start: the browser only lets us talk after the first tap ============ */
 show(screenFromUrl());
-lastSegs = [L.hello];
-preload('es', [L.hello, ...Object.values(L.intros)]);
+lastSegs = L.hello;
+preload(LANG, [L.hello, ...Object.values(L.intros)]);
 $('startAll').onclick = () => {
   unlock();
   $('splash').classList.remove('on');

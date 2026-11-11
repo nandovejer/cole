@@ -6,7 +6,7 @@ import './game.css';
 interface Props { lang: Lang; backHref: string }
 const { lang, backHref } = Astro.props;
 
-// Lola always speaks in Spanish here (it is a Spanish lesson); the buttons are in the chosen language.
+// Interface text. In English, Lola speaks England English and says the Spanish words in Spanish.
 const T = {
   es: {
     cards: [
@@ -59,7 +59,7 @@ const T = {
     back: '← Back',
     again: 'Again! 🔁', menu: '🏠 Games',
     hello: "Hi! I'm Lola", volume: 'Turn the volume up and tap the button', start: '🔊 Start!',
-    bubble: '¡Hola! Soy Lola la lombriz 🐛 (Lola speaks Spanish in this lesson)',
+    bubble: "Hi! I'm Lola the worm 🐛 Tap a game and let's learn el, la, los and las.",
     kid: 'Drawing of a child',
   },
 }[lang];
@@ -85,14 +85,14 @@ const T = {
 <section class="screen" id="learn">
   <div class="grid4">
     <div></div>
-    <div class="hdr" data-say="Uno solo">{T.one}</div>
-    <div class="hdr" data-say="Muchos">{T.many}</div>
+    <div class="hdr" data-tag="one">{T.one}</div>
+    <div class="hdr" data-tag="many">{T.many}</div>
 
-    <div class="hdr rowh" data-say="Equipo azul: el perro, los perros">🔵</div>
+    <div class="hdr rowh" data-tag="blue">🔵</div>
     <div class="house b-el" data-a="el"><div class="art bg-el">el</div><div class="ex">🐶</div><div class="lbl">el perro</div></div>
     <div class="house b-los" data-a="los"><div class="art bg-los">los</div><div class="ex" style="letter-spacing:-8px">🐶🐶🐶</div><div class="lbl">los perros</div></div>
 
-    <div class="hdr rowh" data-say="Equipo naranja: la casa, las casas">🟠</div>
+    <div class="hdr rowh" data-tag="orange">🟠</div>
     <div class="house b-la" data-a="la"><div class="art bg-la">la</div><div class="ex">🏠</div><div class="lbl">la casa</div></div>
     <div class="house b-las" data-a="las"><div class="art bg-las">las</div><div class="ex" style="letter-spacing:-8px">🏠🏠🏠</div><div class="lbl">las casas</div></div>
   </div>
@@ -105,6 +105,7 @@ const T = {
   <div class="stage">
     <div class="picture" id="chPic">🐶</div>
     <div class="noun"><span class="blank" id="chBlank">__</span><span id="chWord">perro</span></div>
+    <div class="gloss" id="chGloss"></div>
     <div class="opts" id="chOpts"></div>
     <div class="progress" id="chProg"></div>
   </div>
@@ -133,7 +134,7 @@ const T = {
 <!-- LITTLE HOUSES -->
 <section class="screen" id="sort">
   <div class="stage">
-    <div class="card5" id="soCard"><div class="picture" id="soPic">🐶</div><div class="noun" id="soWord">perro</div></div>
+    <div class="card5" id="soCard"><div class="picture" id="soPic">🐶</div><div class="noun" id="soWord">perro</div><div class="gloss" id="soGloss"></div></div>
     <div class="houses">
       <button class="hbtn b-el" data-h="el"><span class="art bg-el">el</span><span class="hcount" id="hc-el"></span></button>
       <button class="hbtn b-los" data-h="los"><span class="art bg-los">los</span><span class="hcount" id="hc-los"></span></button>
@@ -150,6 +151,7 @@ const T = {
   <div class="stage">
     <div class="picture" id="plFrom" style="font-size:clamp(56px,12vw,90px)">🐶</div>
     <div class="noun" id="plFromTxt" style="font-size:clamp(34px,7vw,52px)">el perro</div>
+    <div class="gloss" id="plGloss"></div>
     <div class="arrow" id="plAsk">⬇️</div>
     <div class="picture" id="plTo" style="font-size:clamp(56px,12vw,90px)">🐶🐶🐶</div>
     <div class="phrs" id="plOpts"></div>
@@ -164,6 +166,7 @@ const T = {
     <div style="font-size:22px;opacity:.75">{T.detective}</div>
     <div class="picture" id="dePic">🐶</div>
     <div class="noun" id="deTxt" style="cursor:pointer">la perro</div>
+    <div class="gloss" id="deGloss"></div>
     <div class="opts" id="deOpts">
       <button class="yesno yes" id="deYes">✅<small>{T.good}</small></button>
       <button class="yesno no" id="deNo">❌<small>{T.bad}</small></button>
@@ -179,6 +182,7 @@ const T = {
   <div class="stage">
     <div class="picture" id="snPic">🐶</div>
     <div class="sent" id="snTxt"></div>
+    <div class="gloss" id="snGloss"></div>
     <div class="opts" id="snOpts"></div>
     <div class="progress" id="snProg"></div>
   </div>
@@ -221,6 +225,7 @@ const T = {
       </svg>
     </div>
     <div class="sent" id="unTxt" style="font-size:clamp(30px,6.5vw,46px)"></div>
+    <div class="gloss" id="unGloss"></div>
     <div class="pics" id="unPics"></div>
     <div class="progress" id="unProg"></div>
   </div>
@@ -251,6 +256,7 @@ const T = {
       <g id="rings"></g>
     </svg>
     <div class="noun"><span class="blank" id="boBlank">__</span><span id="boWord">nariz</span></div>
+    <div class="gloss" id="boGloss"></div>
     <div class="opts" id="boOpts"></div>
     <div class="progress" id="boProg"></div>
   </div>
