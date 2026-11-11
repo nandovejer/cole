@@ -1,0 +1,45 @@
+---
+interface Props {
+  texto: string;
+}
+const { texto } = Astro.props;
+---
+
+<div class="mascot-row">
+  <svg class="lola" viewBox="0 0 160 130" aria-label="Lola la lombriz">
+    <ellipse cx="80" cy="122" rx="62" ry="6" fill="#000" opacity=".08"></ellipse>
+    <circle cx="24" cy="104" r="15" fill="#f78fb3"></circle><circle cx="46" cy="100" r="18" fill="#f8a5c2"></circle>
+    <circle cx="72" cy="96" r="20" fill="#f78fb3"></circle><circle cx="100" cy="82" r="24" fill="#f8a5c2"></circle>
+    <circle cx="112" cy="50" r="32" fill="#f78fb3"></circle>
+    <path d="M100 18 l-18 -12 v24z M100 18 l18 -12 v24z" fill="#ffd166" stroke="#e09f00" stroke-width="2"></path>
+    <circle cx="100" cy="18" r="6" fill="#ff5d73"></circle>
+    <circle cx="101" cy="46" r="9" fill="#fff"></circle><circle cx="125" cy="46" r="9" fill="#fff"></circle>
+    <circle cx="103" cy="48" r="5" fill="#2b2d42"></circle><circle cx="127" cy="48" r="5" fill="#2b2d42"></circle>
+    <circle cx="105" cy="46" r="1.8" fill="#fff"></circle><circle cx="129" cy="46" r="1.8" fill="#fff"></circle>
+    <circle cx="94" cy="62" r="5" fill="#ff5d73" opacity=".45"></circle><circle cx="134" cy="62" r="5" fill="#ff5d73" opacity=".45"></circle>
+    <ellipse cx="114" cy="64" rx="8" ry="3.5" fill="#9d174d"></ellipse>
+  </svg>
+  <div class="bubble">{texto}</div>
+</div>
+
+<script>
+  document.querySelectorAll<SVGElement>('.lola').forEach((lola) => {
+    lola.addEventListener('click', () => {
+      lola.classList.remove('happy');
+      void lola.getBoundingClientRect();
+      lola.classList.add('happy');
+    });
+  });
+</script>
+
+<style>
+  .mascot-row{display:flex;align-items:flex-end;gap:10px;margin:10px 0 6px}
+  .lola{width:120px;flex:none;animation:wiggle 3s ease-in-out infinite;transform-origin:bottom center;cursor:pointer}
+  @keyframes wiggle{25%{transform:rotate(-4deg)}75%{transform:rotate(4deg)}}
+  .lola:global(.happy){animation:jump .6s ease 2}
+  @keyframes jump{40%{transform:translateY(-28px) rotate(-6deg)}}
+  .bubble{background:#fff;border-radius:24px;padding:14px 18px;font-size:clamp(18px,3.4vw,24px);
+    position:relative;box-shadow:0 5px 0 #d6e4f0;flex:1;min-height:60px;display:flex;align-items:center}
+  .bubble::before{content:"";position:absolute;left:-14px;bottom:18px;border:10px solid transparent;border-right:16px solid #fff;border-left:0}
+  @media (max-width:520px){.lola{width:86px}}
+</style>

@@ -1,0 +1,25 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Lola from '../components/Lola.astro';
+import { cursos } from '../data/cole';
+
+const letras = [
+  ['C', '#ff5d73'],
+  ['o', '#3a86ff'],
+  ['l', '#ff9f1c'],
+  ['e', '#06d6a0'],
+];
+---
+
+<Layout title="Cole">
+  <h1 class="title">{letras.map(([l, c]) => <span style={`color:${c}`}>{l}</span>)}</h1>
+  <Lola texto="¡Hola! ¿A qué curso vas?" />
+  <nav class="menu">
+    {cursos.map((c) => (
+      <a class="card" href={`/${c.slug}/`} style={`background:${c.color}`}>
+        <span class="em">{c.emoji}</span>
+        {c.nombre}
+      </a>
+    ))}
+  </nav>
+</Layout>
