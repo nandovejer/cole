@@ -1,0 +1,37 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Lola from '../components/Lola.astro';
+import { leccionesDe, type Curso, type Asignatura } from '../data/cole';
+import { ui } from '../i18n/ui.js';
+import { href, type Lang } from '../i18n/paths';
+
+interface Props { lang: Lang; curso: Curso; asignatura: Asignatura }
+const { lang, curso, asignatura } = Astro.props;
+const t = ui[lang];
+const lista = leccionesDe(curso.slug, asignatura.slug);
+const backHref = href(lang, `/${curso.slug}/`);
+---
+
+<Layout title={`${asignatura.nombre[lang]} · ${curso.nombre[lang]}`} lang={lang} back={backHref}>
+  <h1 class="title" style={`color:${asignatura.color}`}><span>{asignatura.emoji}</span> {asignatura.nombre[lang]}</h1>
+  <Lola texto={lista.length ? t.lola.subject : t.lola.soon} lang={lang} />
+
+  {lista.length ? (
+    <nav class="list">
+      {lista.map((l) => (
+        <a class="tile" href={href(lang, `/${curso.slug}/${asignatura.slug}/${l.slug}/`)} style={`background:${l.color};--c:${l.color}`}>
+          <span class="em">{l.emoji}</span>
+          <span class="txt">{l.nombre[lang]}<small>{l.descripcion[lang]} · {t.games(l.juegos)}</small></span>
+          <span class="go" aria-hidden="true">▶</span>
+        </a>
+      ))}
+    </nav>
+  ) : (
+    <div class="soon">
+      <div class="em">🚧</div>
+      <p>{t.soonText}</p>
+    </div>
+  )}
+
+  <a class="back" href={backHref}>← {t.back}</a>
+</Layout>

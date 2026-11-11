@@ -1,0 +1,8 @@
+---
+import Course from '../../../views/Course.astro';
+import { rutasCurso } from '../../../data/rutas';
+
+export const getStaticPaths = rutasCurso;
+---
+
+<Course lang="en" {...Astro.props} />

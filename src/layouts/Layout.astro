@@ -1,18 +1,32 @@
 ---
+import { ui } from '../i18n/ui.js';
+import { swapLang, type Lang } from '../i18n/paths';
+
 interface Props {
   title: string;
+  lang: Lang;
+  /** Parent page URL. Without it (home page) there is no back arrow. */
+  back?: string;
 }
-const { title } = Astro.props;
+const { title, lang, back } = Astro.props;
+const t = ui[lang];
+const other = t.otherLang as Lang;
+const altHref = swapLang(Astro.url.pathname, other);
+const sameHref = swapLang(Astro.url.pathname, lang);
 ---
 
 <!doctype html>
-<html lang="es">
+<html lang={lang}>
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#bde0fe" />
     <title>{title}</title>
+    <link rel="alternate" hreflang={lang} href={sameHref} />
+    <link rel="alternate" hreflang={other} href={altHref} />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎒</text></svg>" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Fredoka:wght@500;700&display=swap" rel="stylesheet" />
   </head>
   <body>
@@ -21,55 +35,115 @@ const { title } = Astro.props;
     <div class="cloud" style="width:170px;height:50px;top:4%;animation-duration:120s;animation-delay:-80s"></div>
     <div class="grass"></div>
 
-    <main class="app">
-      <slot />
-    </main>
+    <div class="app">
+      <header class="top">
+        {back && <a class="iconbtn" id="backBtn" href={back} aria-label={t.back} title={t.back}>⬅️</a>}
+        <div class="top-right">
+          <div class="stars" title={t.stars}>⭐ <b data-stars>0</b></div>
+          <button type="button" class="iconbtn" id="soundBtn" aria-label={t.sound} title={t.sound}>🔊</button>
+          <a class="langbtn" href={altHref} hreflang={other} lang={other} title={t.otherName}>
+            <span aria-hidden="true">{t.otherFlag}</span> {t.otherShort}
+          </a>
+        </div>
+      </header>
+      <script is:inline>
+        // stars and sound before painting (shared by the whole site)
+        (function () {
+          var s = 0, off = false;
+          try {
+            s = parseInt(localStorage.getItem('coleStars') || localStorage.getItem('lolaStars2') || '0', 10) || 0;
+            localStorage.setItem('coleStars', s);
+            off = localStorage.getItem('coleSound') === 'off';
+          } catch (e) {}
+          document.querySelectorAll('[data-stars]').forEach(function (el) { el.textContent = s; });
+          if (off) document.getElementById('soundBtn').textContent = '🔇';
+        })();
+      </script>
+
+      <main>
+        <slot />
+      </main>
+    </div>
+
+    <script>
+      import { voice } from '../lib/voice.js';
+      const btn = document.getElementById('soundBtn')!;
+      btn.addEventListener('click', () => {
+        voice.enabled = !voice.enabled;
+        btn.textContent = voice.enabled ? '🔊' : '🔇';
+        document.dispatchEvent(new Event('cole:sound'));
+      });
+    </script>
   </body>
 </html>
 
 <style is:global>
   :root{
+    --el:#3a86ff; --los:#1d4ed8; --la:#ff8c42; --las:#e85d04;
     --ink:#2b2d42; --sky1:#bde0fe; --sky2:#fff1d6;
     color-scheme:light;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;min-height:100%}
+  button{color:var(--ink);-webkit-text-fill-color:currentColor}
   body{font-family:'Andika',system-ui,sans-serif;color:var(--ink);
     background:linear-gradient(180deg,var(--sky1) 0%,#e7f5ff 55%,var(--sky2) 100%);
-    background-attachment:fixed;min-height:100vh;overflow-x:hidden}
+    background-attachment:fixed;min-height:100vh;overflow-x:hidden;
+    user-select:none;-webkit-user-select:none;touch-action:manipulation}
 
   .cloud{position:fixed;background:#fff;border-radius:60px;opacity:.85;z-index:0;animation:drift linear infinite}
   .cloud::before,.cloud::after{content:"";position:absolute;background:#fff;border-radius:50%}
   .cloud::before{width:55%;height:150%;left:15%;top:-60%}
   .cloud::after{width:40%;height:120%;right:12%;top:-40%}
   @keyframes drift{from{transform:translateX(-30vw)}to{transform:translateX(130vw)}}
-  .grass{position:fixed;bottom:0;left:0;right:0;height:60px;z-index:0;
+  .grass{position:fixed;bottom:0;left:0;right:0;height:60px;z-index:0;pointer-events:none;
     background:radial-gradient(circle at 20px -10px,transparent 28px,#7ed957 29px) 0 0/40px 60px repeat-x}
 
-  .app{position:relative;z-index:1;max-width:940px;margin:0 auto;padding:14px 16px 90px;animation:pop .35s ease}
+  /* mobile first */
+  .app{position:relative;z-index:1;max-width:940px;margin:0 auto;
+    padding:max(12px,env(safe-area-inset-top)) 16px 96px}
+  main{animation:pop .35s ease}
   @keyframes pop{from{transform:scale(.94);opacity:0}}
 
-  .title{font-family:'Fredoka',sans-serif;font-size:clamp(30px,6vw,48px);margin:0}
+  .top{display:flex;align-items:center;gap:8px;min-height:56px}
+  .top-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+  .iconbtn{border:none;background:#fff;border-radius:50%;width:56px;height:56px;flex:none;font-size:26px;
+    display:grid;place-items:center;text-decoration:none;box-shadow:0 4px 0 #cbd5e1;cursor:pointer}
+  .iconbtn:active,.langbtn:active{transform:translateY(3px);box-shadow:0 1px 0 #cbd5e1}
+  .stars{font-family:'Fredoka',sans-serif;font-size:22px;background:#fff;border-radius:40px;padding:6px 14px;
+    box-shadow:0 4px 0 #f4c95d;border:3px solid #ffd166;white-space:nowrap}
+  .stars b{color:#e09f00}
+  .langbtn{font-family:'Fredoka',sans-serif;font-weight:700;font-size:18px;color:var(--ink);text-decoration:none;
+    background:#fff;border-radius:30px;height:56px;padding:0 14px;display:flex;align-items:center;gap:6px;
+    box-shadow:0 4px 0 #cbd5e1;white-space:nowrap}
+  @media (max-width:359px){.stars{font-size:18px;padding:5px 10px}.iconbtn,.langbtn{height:50px}.iconbtn{width:50px}}
+
+  .title{font-family:'Fredoka',sans-serif;font-size:clamp(32px,9vw,48px);line-height:1.1;margin:12px 0 0}
   .title span{display:inline-block;animation:bob 2.4s ease-in-out infinite}
   .title span:nth-child(2n){animation-delay:.3s}
   @keyframes bob{50%{transform:translateY(-5px)}}
 
-  .menu{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:16px}
-  .card{border:none;border-radius:28px;padding:22px 14px;cursor:pointer;font-family:'Fredoka',sans-serif;
-    font-size:clamp(20px,3.6vw,28px);color:#fff;display:flex;flex-direction:column;align-items:center;gap:6px;
-    text-align:center;text-decoration:none;transition:transform .15s;box-shadow:0 8px 0 rgba(0,0,0,.18)}
-  .card:hover{transform:translateY(-3px)}
-  .card:active{transform:translateY(6px);box-shadow:0 2px 0 rgba(0,0,0,.18)}
-  .card .em{font-size:clamp(46px,9vw,70px);line-height:1.1}
-  .card small{font-family:'Andika',sans-serif;font-size:15px}
-  @media (max-width:420px){.menu{gap:12px}.card{padding:18px 8px}}
+  /* big lists for little fingers: 1 column on mobile, 2 on big screens */
+  .list{display:grid;grid-template-columns:1fr;gap:16px;margin-top:16px}
+  @media (min-width:640px){.list{grid-template-columns:1fr 1fr;gap:18px}}
+  .tile{display:flex;align-items:center;gap:14px;min-height:108px;padding:14px 16px;border-radius:30px;
+    color:#fff;text-decoration:none;font-family:'Fredoka',sans-serif;font-size:clamp(25px,7vw,32px);line-height:1.1;
+    text-shadow:0 2px 0 rgba(0,0,0,.15);box-shadow:0 8px 0 rgba(0,0,0,.18);transition:transform .15s}
+  .tile:active{transform:translateY(6px);box-shadow:0 2px 0 rgba(0,0,0,.18)}
+  @media (hover:hover){.tile:hover{transform:translateY(-3px)}}
+  .tile .em{flex:none;width:78px;height:78px;border-radius:50%;background:rgba(255,255,255,.3);
+    display:grid;place-items:center;font-size:46px;text-shadow:none}
+  .tile .txt{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0}
+  .tile small{font-family:'Andika',sans-serif;font-size:18px;opacity:.95}
+  .tile .go{flex:none;width:48px;height:48px;border-radius:50%;background:#fff;color:var(--c);
+    display:grid;place-items:center;font-size:22px;text-shadow:none}
 
   .back{display:inline-block;font-family:'Fredoka',sans-serif;font-weight:700;color:var(--ink);text-decoration:none;
-    border:3px solid #cbd5e1;background:#fff;border-radius:30px;padding:10px 18px;font-size:20px;
-    box-shadow:0 4px 0 #cbd5e1;margin-top:20px}
+    border:3px solid #cbd5e1;background:#fff;border-radius:30px;padding:12px 22px;font-size:22px;
+    box-shadow:0 4px 0 #cbd5e1;margin-top:22px;cursor:pointer}
   .back:active{transform:translateY(3px);box-shadow:0 1px 0 #cbd5e1}
 
-  .stage{background:#fff;border-radius:30px;padding:24px 20px;text-align:center;margin-top:16px;box-shadow:0 6px 0 #d6e4f0}
-  .stage .em{font-size:clamp(70px,15vw,110px);line-height:1.1}
-  .stage p{font-size:clamp(20px,4vw,26px);margin:8px 0 0}
+  .soon{background:#fff;border-radius:30px;padding:24px 20px;text-align:center;margin-top:16px;box-shadow:0 6px 0 #d6e4f0}
+  .soon .em{font-size:clamp(70px,22vw,110px);line-height:1.1}
+  .soon p{font-size:clamp(20px,5.5vw,26px);margin:8px 0 0}
 </style>

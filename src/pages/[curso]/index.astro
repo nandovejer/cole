@@ -1,28 +1,8 @@
 ---
-import Layout from '../../layouts/Layout.astro';
-import Lola from '../../components/Lola.astro';
-import { cursos, asignaturas, actividadesDe, type Curso } from '../../data/cole';
+import Course from '../../views/Course.astro';
+import { rutasCurso } from '../../data/rutas';
 
-export function getStaticPaths() {
-  return cursos.map((curso) => ({ params: { curso: curso.slug }, props: { curso } }));
-}
-
-const { curso } = Astro.props as { curso: Curso };
-
-const juegos = (n: number) => (n === 0 ? 'Muy pronto' : n === 1 ? '1 juego' : `${n} juegos`);
+export const getStaticPaths = rutasCurso;
 ---
 
-<Layout title={`${curso.nombre} · Cole`}>
-  <h1 class="title"><span>{curso.emoji}</span> {curso.nombre}</h1>
-  <Lola texto="¿Qué quieres aprender hoy?" />
-  <nav class="menu">
-    {asignaturas.map((a) => (
-      <a class="card" href={`/${curso.slug}/${a.slug}/`} style={`background:${a.color}`}>
-        <span class="em">{a.emoji}</span>
-        {a.nombre}
-        <small>{juegos(actividadesDe(curso.slug, a.slug).length)}</small>
-      </a>
-    ))}
-  </nav>
-  <a class="back" href="/">← Volver</a>
-</Layout>
+<Course lang="es" {...Astro.props} />

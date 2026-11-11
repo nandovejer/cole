@@ -1,0 +1,284 @@
+---
+import Lola from '../../components/Lola.astro';
+import type { Lang } from '../../i18n/paths';
+import './game.css';
+
+interface Props { lang: Lang; backHref: string }
+const { lang, backHref } = Astro.props;
+
+// Lola always speaks in Spanish here (it is a Spanish lesson); the buttons are in the chosen language.
+const T = {
+  es: {
+    cards: [
+      ['learn', 'c1', '🏠', 'Conoce', 'el · la · los · las'],
+      ['choose', 'c2', '🧩', '¿Cuál va?', 'Elige la palabrita'],
+      ['listen', 'c3', '👂', 'Escucha y toca', '¿Uno o muchos?'],
+      ['balloons', 'c4', '🎈', 'Explota globos', '¡Atrapa los que van!'],
+      ['sort', 'c5', '🏡', 'Casitas', 'Lleva cada cosa a su casa'],
+      ['plural', 'c6', '🪄', 'Uno y muchos', '¡Haz magia!'],
+      ['detective', 'c7', '🕵️', 'Lola detective', '¿Lo ha dicho bien?'],
+      ['sentence', 'c8', '📖', 'Frases', '¿Qué palabrita falta?'],
+      ['unicorn', 'c9', '🦄', 'El unicornio', 'Busca a sus amigos'],
+      ['body', 'c10', '🧒', 'Mi cuerpo', 'De la cabeza a los pies'],
+    ],
+    one: '☝️ Uno', many: '🖐️ Muchos',
+    tip: '💡 Truco: si hay <b>muchos</b>, la palabrita lleva una <b>S</b> al final, ¡igual que la cosa! <b>los</b> perro<b>s</b>, <b>las</b> casa<b>s</b>.',
+    listenHint: 'Escucha y toca el dibujo correcto',
+    listenBtn: 'Escuchar',
+    popWith: 'Explota los que van con',
+    play: '¡A jugar! 🎈',
+    detective: '🕵️ ¿Lola lo ha dicho bien?',
+    good: '¡Bien!', bad: '¡Mal!',
+    back: '← Volver',
+    again: '¡Otra vez! 🔁', menu: '🏠 Juegos',
+    hello: '¡Hola! Soy Lola', volume: 'Sube el volumen y toca el botón', start: '🔊 ¡Empezar!',
+    bubble: '¡Hola! Soy Lola la lombriz 🐛 Toca un juego y aprendemos el, la, los y las.',
+    kid: 'Niño dibujado',
+  },
+  en: {
+    cards: [
+      ['learn', 'c1', '🏠', 'Meet them', 'el · la · los · las'],
+      ['choose', 'c2', '🧩', 'Which one?', 'Pick the little word'],
+      ['listen', 'c3', '👂', 'Listen and tap', 'One or many?'],
+      ['balloons', 'c4', '🎈', 'Pop balloons', 'Catch the right ones!'],
+      ['sort', 'c5', '🏡', 'Little houses', 'Take each thing home'],
+      ['plural', 'c6', '🪄', 'One and many', 'Do some magic!'],
+      ['detective', 'c7', '🕵️', 'Detective Lola', 'Did she say it right?'],
+      ['sentence', 'c8', '📖', 'Sentences', 'Which word is missing?'],
+      ['unicorn', 'c9', '🦄', 'The unicorn', 'Find its friends'],
+      ['body', 'c10', '🧒', 'My body', 'From head to toe'],
+    ],
+    one: '☝️ One', many: '🖐️ Many',
+    tip: '💡 Tip: if there are <b>many</b>, the little word ends in <b>S</b>, just like the thing! <b>los</b> perro<b>s</b>, <b>las</b> casa<b>s</b>.',
+    listenHint: 'Listen and tap the right picture',
+    listenBtn: 'Listen',
+    popWith: 'Pop the ones that go with',
+    play: "Let's play! 🎈",
+    detective: '🕵️ Did Lola say it right?',
+    good: 'Right!', bad: 'Wrong!',
+    back: '← Back',
+    again: 'Again! 🔁', menu: '🏠 Games',
+    hello: "Hi! I'm Lola", volume: 'Turn the volume up and tap the button', start: '🔊 Start!',
+    bubble: '¡Hola! Soy Lola la lombriz 🐛 (Lola speaks Spanish in this lesson)',
+    kid: 'Drawing of a child',
+  },
+}[lang];
+---
+
+<h1 class="title lesson-title">
+  <span style="color:var(--el)">el</span> <span style="color:var(--la)">la</span>
+  <span style="color:var(--los)">los</span> <span style="color:var(--las)">las</span>
+</h1>
+
+<Lola texto={T.bubble} lang={lang} auto={false} />
+
+<!-- MENU -->
+<section class="screen on" id="menu">
+  <div class="menu">
+    {T.cards.map(([id, c, em, name, sub]) => (
+      <a class={`card ${c}`} href={`#${id}`} data-go={id}><span class="em">{em}</span>{name}<small>{sub}</small></a>
+    ))}
+  </div>
+</section>
+
+<!-- GET TO KNOW THEM -->
+<section class="screen" id="learn">
+  <div class="grid4">
+    <div></div>
+    <div class="hdr" data-say="Uno solo">{T.one}</div>
+    <div class="hdr" data-say="Muchos">{T.many}</div>
+
+    <div class="hdr rowh" data-say="Equipo azul: el perro, los perros">🔵</div>
+    <div class="house b-el" data-a="el"><div class="art bg-el">el</div><div class="ex">🐶</div><div class="lbl">el perro</div></div>
+    <div class="house b-los" data-a="los"><div class="art bg-los">los</div><div class="ex" style="letter-spacing:-8px">🐶🐶🐶</div><div class="lbl">los perros</div></div>
+
+    <div class="hdr rowh" data-say="Equipo naranja: la casa, las casas">🟠</div>
+    <div class="house b-la" data-a="la"><div class="art bg-la">la</div><div class="ex">🏠</div><div class="lbl">la casa</div></div>
+    <div class="house b-las" data-a="las"><div class="art bg-las">las</div><div class="ex" style="letter-spacing:-8px">🏠🏠🏠</div><div class="lbl">las casas</div></div>
+  </div>
+  <div class="tip" id="tip" set:html={T.tip} />
+  <a class="back" href="#" data-go="menu">{T.back}</a>
+</section>
+
+<!-- WHICH ONE? -->
+<section class="screen" id="choose">
+  <div class="stage">
+    <div class="picture" id="chPic">🐶</div>
+    <div class="noun"><span class="blank" id="chBlank">__</span><span id="chWord">perro</span></div>
+    <div class="opts" id="chOpts"></div>
+    <div class="progress" id="chProg"></div>
+  </div>
+  <a class="back" href="#" data-go="menu">{T.back}</a>
+</section>
+
+<!-- LISTEN -->
+<section class="screen" id="listen">
+  <div class="stage">
+    <button class="speaker" id="speakBtn" aria-label={T.listenBtn}>🔊</button>
+    <div style="font-size:20px;margin-top:10px;opacity:.75">{T.listenHint}</div>
+    <div class="pics" id="lsPics"></div>
+    <div class="progress" id="lsProg"></div>
+  </div>
+  <a class="back" href="#" data-go="menu">{T.back}</a>
+</section>
+
+<!-- BALLOONS -->
+<section class="screen" id="balloons">
+  <div class="target" id="target" data-label={T.popWith}></div>
+  <div class="sky" id="sky"><button class="startbtn" id="startBtn">{T.play}</button></div>
+  <div class="progress" id="bProg"></div>
+  <a class="back" href="#" data-go="menu">{T.back}</a>
+</section>
+
+<!-- LITTLE HOUSES -->
+<section class="screen" id="sort">
+  <div class="stage">
+    <div class="card5" id="soCard"><div class="picture" id="soPic">🐶</div><div class="noun" id="soWord">perro</div></div>
+    <div class="houses">
+      <button class="hbtn b-el" data-h="el"><span class="art bg-el">el</span><span class="hcount" id="hc-el"></span></button>
+      <button class="hbtn b-los" data-h="los"><span class="art bg-los">los</span><span class="hcount" id="hc-los"></span></button>
+      <button class="hbtn b-la" data-h="la"><span class="art bg-la">la</span><span class="hcount" id="hc-la"></span></button>
+      <button class="hbtn b-las" data-h="las"><span class="art bg-las">las</span><span class="hcount" id="hc-las"></span></button>
+    </div>
+    <div class="progress" id="soProg"></div>
+  </div>
+  <a class="back" href="#" data-go="menu">{T.back}</a>
+</section>
+
+<!-- ONE AND MANY -->
+<section class="screen" id="plural">
+  <div class="stage">
+    <div class="picture" id="plFrom" style="font-size:clamp(56px,12vw,90px)">🐶</div>
+    <div class="noun" id="plFromTxt" style="font-size:clamp(34px,7vw,52px)">el perro</div>
+    <div class="arrow" id="plAsk">⬇️</div>
+    <div class="picture" id="plTo" style="font-size:clamp(56px,12vw,90px)">🐶🐶🐶</div>
+    <div class="phrs" id="plOpts"></div>
+    <div class="progress" id="plProg"></div>
+  </div>
+  <a class="back" href="#" data-go="menu">{T.back}</a>
+</section>
+
+<!-- DETECTIVE -->
+<section class="screen" id="detective">
+  <div class="stage">
+    <div style="font-size:22px;opacity:.75">{T.detective}</div>
+    <div class="picture" id="dePic">🐶</div>
+    <div class="noun" id="deTxt" style="cursor:pointer">la perro</div>
+    <div class="opts" id="deOpts">
+      <button class="yesno yes" id="deYes">✅<small>{T.good}</small></button>
+      <button class="yesno no" id="deNo">❌<small>{T.bad}</small></button>
+    </div>
+    <div class="opts" id="deFix" style="display:none"></div>
+    <div class="progress" id="deProg"></div>
+  </div>
+  <a class="back" href="#" data-go="menu">{T.back}</a>
+</section>
+
+<!-- SENTENCES -->
+<section class="screen" id="sentence">
+  <div class="stage">
+    <div class="picture" id="snPic">🐶</div>
+    <div class="sent" id="snTxt"></div>
+    <div class="opts" id="snOpts"></div>
+    <div class="progress" id="snProg"></div>
+  </div>
+  <a class="back" href="#" data-go="menu">{T.back}</a>
+</section>
+
+<!-- UNICORN -->
+<section class="screen" id="unicorn">
+  <div class="stage">
+    <div class="uni-wrap">
+      <svg class="rainbow" viewBox="0 0 300 160" id="rainbow">
+        <g fill="none" stroke-width="13" stroke-linecap="round">
+          <path id="rb0" d="M20 155 A130 130 0 0 1 280 155" stroke="#ff5d73"></path>
+          <path id="rb1" d="M34 155 A116 116 0 0 1 266 155" stroke="#ff9f1c"></path>
+          <path id="rb2" d="M48 155 A102 102 0 0 1 252 155" stroke="#ffd166"></path>
+          <path id="rb3" d="M62 155 A88 88 0 0 1 238 155" stroke="#06d6a0"></path>
+          <path id="rb4" d="M76 155 A74 74 0 0 1 224 155" stroke="#3a86ff"></path>
+          <path id="rb5" d="M90 155 A60 60 0 0 1 210 155" stroke="#9b5de5"></path>
+        </g>
+      </svg>
+      <svg class="unicorn" id="uniSvg" viewBox="0 0 200 170" aria-label="Unicornio">
+        <path d="M40 92 q-28 -6 -30 22 q14 -10 22 2 q4 -16 14 -14z" fill="#c77dff"></path>
+        <path d="M34 100 q-20 8 -14 30 q8 -14 18 -10z" fill="#ff99c8"></path>
+        <ellipse cx="88" cy="100" rx="52" ry="34" fill="#fff" stroke="#e2d6f5" stroke-width="3"></ellipse>
+        <rect x="52" y="118" width="14" height="40" rx="7" fill="#fff" stroke="#e2d6f5" stroke-width="3"></rect>
+        <rect x="76" y="122" width="14" height="38" rx="7" fill="#fff" stroke="#e2d6f5" stroke-width="3"></rect>
+        <rect x="100" y="122" width="14" height="38" rx="7" fill="#fff" stroke="#e2d6f5" stroke-width="3"></rect>
+        <rect x="120" y="118" width="14" height="40" rx="7" fill="#fff" stroke="#e2d6f5" stroke-width="3"></rect>
+        <g fill="#c9a7f5"><rect x="52" y="152" width="14" height="8" rx="3"></rect><rect x="76" y="154" width="14" height="8" rx="3"></rect><rect x="100" y="154" width="14" height="8" rx="3"></rect><rect x="120" y="152" width="14" height="8" rx="3"></rect></g>
+        <path d="M122 84 q8 -30 26 -40 l14 18 q-14 10 -18 36z" fill="#fff" stroke="#e2d6f5" stroke-width="3"></path>
+        <ellipse cx="160" cy="56" rx="26" ry="20" fill="#fff" stroke="#e2d6f5" stroke-width="3"></ellipse>
+        <ellipse cx="178" cy="64" rx="10" ry="8" fill="#ffd6e8"></ellipse>
+        <path d="M150 38 l6 -34 l10 32z" fill="#ffd166" stroke="#e09f00" stroke-width="2"></path>
+        <path d="M152 30 l11 -3 M154 20 l9 -3" stroke="#e09f00" stroke-width="2"></path>
+        <path d="M140 40 l-6 -14 l14 8z" fill="#fff" stroke="#e2d6f5" stroke-width="2"></path>
+        <circle cx="132" cy="48" r="10" fill="#ff99c8"></circle><circle cx="124" cy="62" r="10" fill="#c77dff"></circle>
+        <circle cx="120" cy="78" r="10" fill="#7bdff2"></circle><circle cx="140" cy="36" r="8" fill="#ffd166"></circle>
+        <path d="M156 54 q5 5 10 0" stroke="#2b2d42" stroke-width="3" fill="none" stroke-linecap="round"></path>
+        <circle cx="170" cy="66" r="4" fill="#ff8fab" opacity=".7"></circle>
+      </svg>
+    </div>
+    <div class="sent" id="unTxt" style="font-size:clamp(30px,6.5vw,46px)"></div>
+    <div class="pics" id="unPics"></div>
+    <div class="progress" id="unProg"></div>
+  </div>
+  <a class="back" href="#" data-go="menu">{T.back}</a>
+</section>
+
+<!-- BODY -->
+<section class="screen" id="body">
+  <div class="stage body-stage">
+    <svg class="kid" id="kid" viewBox="0 0 200 300" aria-label={T.kid}>
+      <rect x="76" y="200" width="18" height="68" rx="8" fill="#3a86ff"></rect>
+      <rect x="106" y="200" width="18" height="68" rx="8" fill="#3a86ff"></rect>
+      <ellipse cx="80" cy="276" rx="18" ry="9" fill="#ef476f"></ellipse>
+      <ellipse cx="120" cy="276" rx="18" ry="9" fill="#ef476f"></ellipse>
+      <path d="M72 136 L38 192" stroke="#f4c095" stroke-width="16" stroke-linecap="round"></path>
+      <path d="M128 136 L162 192" stroke="#f4c095" stroke-width="16" stroke-linecap="round"></path>
+      <rect x="66" y="122" width="68" height="86" rx="20" fill="#ffd166"></rect>
+      <circle cx="100" cy="176" r="3" fill="#c98a00"></circle>
+      <rect x="91" y="108" width="18" height="18" fill="#f4c095"></rect>
+      <ellipse cx="56" cy="72" rx="9" ry="13" fill="#f4c095"></ellipse>
+      <ellipse cx="144" cy="72" rx="9" ry="13" fill="#f4c095"></ellipse>
+      <circle cx="100" cy="70" r="44" fill="#f8d0aa"></circle>
+      <path d="M56 64 q2 -42 44 -42 q42 0 44 42 q-12 -18 -26 -20 q-6 10 -20 8 q-14 -2 -18 -12 q-16 6 -24 24z" fill="#8d5524"></path>
+      <circle cx="84" cy="68" r="6" fill="#2b2d42"></circle><circle cx="116" cy="68" r="6" fill="#2b2d42"></circle>
+      <circle cx="86" cy="66" r="2" fill="#fff"></circle><circle cx="118" cy="66" r="2" fill="#fff"></circle>
+      <ellipse cx="100" cy="82" rx="5" ry="4" fill="#e8a87c"></ellipse>
+      <path d="M86 94 q14 12 28 0" stroke="#c0392b" stroke-width="4" fill="none" stroke-linecap="round"></path>
+      <g id="rings"></g>
+    </svg>
+    <div class="noun"><span class="blank" id="boBlank">__</span><span id="boWord">nariz</span></div>
+    <div class="opts" id="boOpts"></div>
+    <div class="progress" id="boProg"></div>
+  </div>
+  <a class="back" href="#" data-go="menu">{T.back}</a>
+</section>
+
+<!-- prize -->
+<div class="overlay" id="overlay">
+  <div class="prize">
+    <div class="em" id="prizeEm">🏆</div>
+    <h2 id="prizeTitle">¡Genial!</h2>
+    <p style="font-size:22px;margin:4px 0 18px" id="prizeText"></p>
+    <button class="back" id="prizeBtn" style="background:#ffd166;box-shadow:0 4px 0 #e09f00">{T.again}</button>
+    <a class="back" href="#" data-go="menu">{T.menu}</a>
+  </div>
+</div>
+
+<!-- start screen: turns on the sound (browsers need a tap) -->
+<div class="overlay on" id="splash" style="background:linear-gradient(180deg,#bde0fe,#fff1d6)">
+  <a class="back splash-back" href={backHref}>{T.back}</a>
+  <div class="prize">
+    <div class="em">🐛</div>
+    <h2>{T.hello}</h2>
+    <p style="font-size:22px;margin:4px 0 18px">{T.volume}</p>
+    <button class="back" id="startAll" style="font-size:30px;padding:16px 30px;background:#9b5de5;color:#fff !important;box-shadow:0 6px 0 #6a3fb0">{T.start}</button>
+  </div>
+</div>
+
+<script>
+  import './game.js';
+</script>

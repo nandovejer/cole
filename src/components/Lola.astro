@@ -1,12 +1,18 @@
 ---
+import type { Lang } from '../i18n/paths';
+import { ui } from '../i18n/ui.js';
+
 interface Props {
   texto: string;
+  lang: Lang;
+  /** false when a lesson controls Lola itself */
+  auto?: boolean;
 }
-const { texto } = Astro.props;
+const { texto, lang, auto = true } = Astro.props;
 ---
 
-<div class="mascot-row">
-  <svg class="lola" viewBox="0 0 160 130" aria-label="Lola la lombriz">
+<div class="mascot-row" data-lola-auto={auto ? '' : undefined} data-lang={lang} data-giggle={ui[lang].lola.giggle}>
+  <svg class="lola" id="lola" viewBox="0 0 160 130" role="img" aria-label="Lola">
     <ellipse cx="80" cy="122" rx="62" ry="6" fill="#000" opacity=".08"></ellipse>
     <circle cx="24" cy="104" r="15" fill="#f78fb3"></circle><circle cx="46" cy="100" r="18" fill="#f8a5c2"></circle>
     <circle cx="72" cy="96" r="20" fill="#f78fb3"></circle><circle cx="100" cy="82" r="24" fill="#f8a5c2"></circle>
@@ -17,29 +23,41 @@ const { texto } = Astro.props;
     <circle cx="103" cy="48" r="5" fill="#2b2d42"></circle><circle cx="127" cy="48" r="5" fill="#2b2d42"></circle>
     <circle cx="105" cy="46" r="1.8" fill="#fff"></circle><circle cx="129" cy="46" r="1.8" fill="#fff"></circle>
     <circle cx="94" cy="62" r="5" fill="#ff5d73" opacity=".45"></circle><circle cx="134" cy="62" r="5" fill="#ff5d73" opacity=".45"></circle>
-    <ellipse cx="114" cy="64" rx="8" ry="3.5" fill="#9d174d"></ellipse>
+    <ellipse id="mouth" cx="114" cy="64" rx="8" ry="3.5" fill="#9d174d"></ellipse>
   </svg>
-  <div class="bubble">{texto}</div>
+  <button type="button" class="bubble" id="bubble" aria-label={ui[lang].hear}>
+    <span id="bubbleText">{texto}</span><span class="rep" aria-hidden="true">🔊</span>
+  </button>
 </div>
 
 <script>
-  document.querySelectorAll<SVGElement>('.lola').forEach((lola) => {
-    lola.addEventListener('click', () => {
-      lola.classList.remove('happy');
-      void lola.getBoundingClientRect();
-      lola.classList.add('happy');
-    });
-  });
+  import { say } from '../lib/voice.js';
+
+  const row = document.querySelector<HTMLElement>('[data-lola-auto]');
+  if (row) {
+    const lang = row.dataset.lang;
+    const lola = row.querySelector<SVGElement>('.lola')!;
+    const text = row.querySelector('#bubbleText')!;
+    const jump = () => { lola.classList.remove('happy'); void lola.getBoundingClientRect(); lola.classList.add('happy'); };
+    row.querySelector('#bubble')!.addEventListener('click', () => say(text.textContent ?? '', { lang }));
+    lola.addEventListener('click', () => { jump(); say(row.dataset.giggle ?? '', { lang }); });
+  }
 </script>
 
-<style>
+<style is:global>
   .mascot-row{display:flex;align-items:flex-end;gap:10px;margin:10px 0 6px}
-  .lola{width:120px;flex:none;animation:wiggle 3s ease-in-out infinite;transform-origin:bottom center;cursor:pointer}
+  .lola{width:96px;flex:none;animation:wiggle 3s ease-in-out infinite;transform-origin:bottom center;cursor:pointer}
+  @media (min-width:600px){.lola{width:120px}}
   @keyframes wiggle{25%{transform:rotate(-4deg)}75%{transform:rotate(4deg)}}
-  .lola:global(.happy){animation:jump .6s ease 2}
+  .lola.happy{animation:jump .6s ease 2}
   @keyframes jump{40%{transform:translateY(-28px) rotate(-6deg)}}
-  .bubble{background:#fff;border-radius:24px;padding:14px 18px;font-size:clamp(18px,3.4vw,24px);
-    position:relative;box-shadow:0 5px 0 #d6e4f0;flex:1;min-height:60px;display:flex;align-items:center}
+  .lola.talking #mouth{animation:mouth .25s infinite alternate}
+  @keyframes mouth{to{transform:scaleY(1.9)}}
+  #mouth{transform-origin:114px 64px;transform-box:view-box}
+  .bubble{font:inherit;color:inherit;text-align:left;border:none;background:#fff;border-radius:24px;padding:14px 18px;
+    font-size:clamp(19px,5vw,24px);cursor:pointer;position:relative;box-shadow:0 5px 0 #d6e4f0;flex:1;min-height:64px;
+    display:flex;align-items:center;gap:10px}
   .bubble::before{content:"";position:absolute;left:-14px;bottom:18px;border:10px solid transparent;border-right:16px solid #fff;border-left:0}
-  @media (max-width:520px){.lola{width:86px}}
+  .bubble:active{transform:translateY(3px);box-shadow:0 2px 0 #d6e4f0}
+  .bubble .rep{margin-left:auto;font-size:24px;opacity:.6;flex:none}
 </style>

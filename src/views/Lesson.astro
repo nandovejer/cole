@@ -1,0 +1,18 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ElLaLosLas from '../lessons/el-la-los-las/ElLaLosLas.astro';
+import type { Curso, Asignatura, Leccion } from '../data/cole';
+import { href, type Lang } from '../i18n/paths';
+
+interface Props { lang: Lang; curso: Curso; asignatura: Asignatura; leccion: Leccion }
+const { lang, curso, asignatura, leccion } = Astro.props;
+const backHref = href(lang, `/${curso.slug}/${asignatura.slug}/`);
+
+// Each lesson is its own component. To add one: create it in src/lessons/ and register it here.
+const componentes = { 'el-la-los-las': ElLaLosLas } as const;
+const Componente = componentes[leccion.slug as keyof typeof componentes];
+---
+
+<Layout title={`${leccion.nombre[lang]} · ${asignatura.nombre[lang]}`} lang={lang} back={backHref}>
+  <Componente lang={lang} backHref={backHref} />
+</Layout>

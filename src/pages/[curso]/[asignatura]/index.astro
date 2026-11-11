@@ -1,0 +1,8 @@
+---
+import Subject from '../../../views/Subject.astro';
+import { rutasAsignatura } from '../../../data/rutas';
+
+export const getStaticPaths = rutasAsignatura;
+---
+
+<Subject lang="es" {...Astro.props} />

@@ -1,0 +1,26 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Lola from '../components/Lola.astro';
+import { cursos } from '../data/cole';
+import { ui } from '../i18n/ui.js';
+import { href, type Lang } from '../i18n/paths';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const t = ui[lang];
+const letras = [['C', '#ff5d73'], ['o', '#3a86ff'], ['l', '#ff9f1c'], ['e', '#06d6a0']];
+---
+
+<Layout title="Cole" lang={lang}>
+  <h1 class="title">{letras.map(([l, c]) => <span style={`color:${c}`}>{l}</span>)}</h1>
+  <Lola texto={t.lola.home} lang={lang} />
+  <nav class="list">
+    {cursos.map((c) => (
+      <a class="tile" href={href(lang, `/${c.slug}/`)} style={`background:${c.color};--c:${c.color}`}>
+        <span class="em">{c.emoji}</span>
+        <span class="txt">{c.nombre[lang]}</span>
+        <span class="go" aria-hidden="true">▶</span>
+      </a>
+    ))}
+  </nav>
+</Layout>

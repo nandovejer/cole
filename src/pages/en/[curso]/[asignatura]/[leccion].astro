@@ -1,0 +1,8 @@
+---
+import Lesson from '../../../../views/Lesson.astro';
+import { rutasLeccion } from '../../../../data/rutas';
+
+export const getStaticPaths = rutasLeccion;
+---
+
+<Lesson lang="en" {...Astro.props} />
