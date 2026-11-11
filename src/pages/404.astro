@@ -1,0 +1,13 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { href } from '../i18n/paths';
+---
+
+<Layout title="Cole" lang="es">
+  <div class="soon">
+    <div class="em">🐛❓</div>
+    <p>¡Uy! Esta página no existe.<br /><small>Oops! This page doesn't exist.</small></p>
+  </div>
+  <a class="back" href={href('es', '/')}>🏠 Inicio</a>
+  <a class="back" href={href('en', '/')}>🏠 Home</a>
+</Layout>
